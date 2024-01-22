@@ -1,0 +1,35 @@
+{
+  "name": "next-auto-translate",
+  "type": "module",
+  "exports": {
+    "./browser": "./dist/browser.js",
+    "./server": "./dist/server.js"
+  },
+  "version": "1.0.27",
+  "description": "Automagical translation for NextJS",
+  "private": false,
+  "keywords": [],
+  "author": "LeakedDave",
+  "license": "ISC",
+  "peerDependencies": {
+    "ai": "^2.2.31",
+    "next": "^14.1.0",
+    "next-i18next": "^15.2.0",
+    "openai-edge": "^1.2.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.7",
+    "@babel/preset-env": "^7.23.8",
+    "@babel/preset-react": "^7.23.3",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "next-i18next": "^15.2.0",
+    "rollup-plugin-babel": "^4.4.0",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-peer-deps-external": "^2.2.4"
+  }
+}
