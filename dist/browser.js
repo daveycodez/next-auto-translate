@@ -1,5 +1,5 @@
 import { useTranslation } from 'next-i18next';
-import React, { useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, createContext } from 'react';
 
 function _iterableToArrayLimit(r, l) {
   var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
@@ -384,10 +384,34 @@ function _nonIterableRest() {
 
 var isDev = process.env.NODE_ENV === 'development';
 var defaultLocale = "en";
-var AutoTranslate = function AutoTranslate(_ref) {
-  var tKey = _ref.tKey,
-    children = _ref.children,
-    router = _ref.router;
+
+// Create a Context for the AutoTranslate
+var AutoTranslateContext = /*#__PURE__*/createContext();
+
+// Create a Provider Component
+var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
+  var children = _ref.children,
+    router = _ref.router,
+    _ref$locales = _ref.locales,
+    locales = _ref$locales === void 0 ? ["en", "es"] : _ref$locales,
+    _ref$defaultLocale = _ref.defaultLocale,
+    defaultLocale = _ref$defaultLocale === void 0 ? "en" : _ref$defaultLocale;
+  // You can include any state or methods you want to share via context here
+
+  return /*#__PURE__*/React.createElement(AutoTranslateContext.Provider, {
+    value: {
+      router: router,
+      locales: locales,
+      defaultLocale: defaultLocale
+    }
+  }, children);
+};
+var AutoTranslate = function AutoTranslate(_ref2) {
+  var tKey = _ref2.tKey,
+    children = _ref2.children;
+  var _useContext = useContext(AutoTranslateContext),
+    router = _useContext.router;
+    _useContext.locales;
   var _useState = useState(false),
     _useState2 = _slicedToArray(_useState, 2),
     initialized = _useState2[0],
@@ -403,7 +427,8 @@ var AutoTranslate = function AutoTranslate(_ref) {
 
   // Get User's locale
   var locale = router.locale;
-  console.log("[AutoTranslate] Current Locale: ", locale);
+
+  // console.log("[AutoTranslate] Current Locale: ", locale)
 
   // Get namespace from pathname, which is the first part of the pathname
   var namespace = router.pathname.split("/")[1];
@@ -413,6 +438,7 @@ var AutoTranslate = function AutoTranslate(_ref) {
 
   // Determine Key Prefix based on the rest of the pathname
   var keyPrefix = router.pathname.split("/").slice(2).join(".");
+  console.log("[AutoTranslate] Namespace: ", namespace);
   var _useTranslation = useTranslation(namespace),
     t = _useTranslation.t;
 
@@ -446,7 +472,7 @@ var AutoTranslate = function AutoTranslate(_ref) {
       });
     };
     var runTranslations = /*#__PURE__*/function () {
-      var _ref2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
+      var _ref3 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
         return _regeneratorRuntime().wrap(function _callee$(_context) {
           while (1) switch (_context.prev = _context.next) {
             case 0:
@@ -484,7 +510,7 @@ var AutoTranslate = function AutoTranslate(_ref) {
         }, _callee);
       }));
       return function runTranslations() {
-        return _ref2.apply(this, arguments);
+        return _ref3.apply(this, arguments);
       };
     }();
     useEffect(function () {
@@ -520,4 +546,4 @@ var loadingElement = /*#__PURE__*/React.createElement(React.Fragment, null, /*#_
   className: "ellipsis"
 }, /*#__PURE__*/React.createElement("i", null, "Translating"))));
 
-export { AutoTranslate };
+export { AutoTranslate, AutoTranslateProvider };

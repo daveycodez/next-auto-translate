@@ -1,12 +1,27 @@
 import { useTranslation } from 'next-i18next'
-import React, { useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const isDev = process.env.NODE_ENV === 'development';
 
 const defaultLocale = "en"
 
 
-export const AutoTranslate = ({ tKey, children, router }) => {
+// Create a Context for the AutoTranslate
+const AutoTranslateContext = createContext();
+
+// Create a Provider Component
+export const AutoTranslateProvider = ({ children, router, locales = ["en", "es"], defaultLocale = "en" }) => {
+    // You can include any state or methods you want to share via context here
+
+    return (
+        <AutoTranslateContext.Provider value={{ router, locales, defaultLocale }}>
+            {children}
+        </AutoTranslateContext.Provider>
+    );
+};
+
+export const AutoTranslate = ({ tKey, children }) => {
+    const { router, locales } = useContext(AutoTranslateContext);
     const [initialized, setInitialized] = useState(false)
     const [loading, setLoading] = useState(false)
     const [translated, setTranslated] = useState(false)
@@ -14,7 +29,7 @@ export const AutoTranslate = ({ tKey, children, router }) => {
     // Get User's locale
     const locale = router.locale
 
-    console.log("[AutoTranslate] Current Locale: ", locale)
+    // console.log("[AutoTranslate] Current Locale: ", locale)
 
     // Get namespace from pathname, which is the first part of the pathname
     let namespace = router.pathname.split("/")[1]
@@ -25,6 +40,8 @@ export const AutoTranslate = ({ tKey, children, router }) => {
 
     // Determine Key Prefix based on the rest of the pathname
     const keyPrefix = router.pathname.split("/").slice(2).join(".")
+
+    console.log("[AutoTranslate] Namespace: ", namespace)
 
     const { t } = useTranslation(namespace)
 
@@ -106,7 +123,6 @@ export const AutoTranslate = ({ tKey, children, router }) => {
     return (
         <>
             {(loading || translated) ? children : t(keyPrefix + tKey, children)}
-
             {loading && loadingElement}
         </>
     )

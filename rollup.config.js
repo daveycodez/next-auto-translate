@@ -24,7 +24,7 @@ export default [
             'react',
             'react-dom',
             'next-i18next',
-            'next/router'
+            'react-i18next'
         ]
     },
     {
@@ -48,7 +48,7 @@ export default [
             'path',
             'openai-edge',
             'next-i18next',
-            'next-i18next/serverSideTranslations'
+            'react-i18next'
         ]
     }
 ];
