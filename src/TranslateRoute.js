@@ -11,8 +11,7 @@ const openai = new OpenAIApi(openaiConfig)
 
 const basePath = "/public/locales/"
 const defaultLocale = "en"
-import config from 'next.config'
-const locales = config.i18n.locales;
+const locales = ["en", "de", "es", "ja"];
 
 
 export const TranslateRoute = async (req, res) => {

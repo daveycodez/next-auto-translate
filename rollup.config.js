@@ -46,7 +46,9 @@ export default [
         external: [
             'fs',
             'path',
-            'openai-edge'
+            'openai-edge',
+            'next-i18next',
+            'next-i18next/serverSideTranslations'
         ]
     }
 ];

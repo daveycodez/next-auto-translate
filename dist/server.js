@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { Configuration, OpenAIApi } from 'openai-edge';
-import config from 'next.config';
 
 function _regeneratorRuntime() {
   _regeneratorRuntime = function () {
@@ -405,7 +404,7 @@ var openaiConfig = new Configuration({
 var openai = new OpenAIApi(openaiConfig);
 var basePath = "/public/locales/";
 var defaultLocale = "en";
-var locales = config.i18n.locales;
+var locales = ["en", "de", "es", "ja"];
 var TranslateRoute = /*#__PURE__*/function () {
   var _ref = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(req, res) {
     var _req$body, namespace, keyPrefix, tKey, text, runTranslate;
