@@ -2,10 +2,15 @@
   "name": "next-auto-translate",
   "type": "module",
   "exports": {
-    "./browser": "./dist/browser.js",
+    ".": "./dist/index.js",
     "./server": "./dist/server.js"
   },
-  "version": "1.0.41",
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "link": "npm link && npm link ../Ink-Wizard/node_modules/next-intl ../Ink-Wizard/node_modules/use-intl ../Ink-Wizard/node_modules/react"
+  },
+  "version": "1.0.42",
   "description": "Automagical translation for NextJS",
   "private": false,
   "keywords": [],
@@ -14,11 +19,9 @@
   "peerDependencies": {
     "ai": "^2.2.31",
     "next": "^14.1.0",
-    "next-i18next": "^15.2.0",
     "openai-edge": "^1.2.2",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-i18next": "^14.0.1"
+    "next-intl": "^3.5.0"
   },
   "devDependencies": {
     "@babel/core": "^7.23.7",

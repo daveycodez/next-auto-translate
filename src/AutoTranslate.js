@@ -1,35 +1,29 @@
-import { useTranslation } from 'next-i18next'
+import { useTranslations, useLocale } from 'next-intl';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useRouter } from 'next/router'
 
 const isDev = process.env.NODE_ENV === 'development';
 
 const defaultLocale = "en"
 
-
-// Create a Context for the AutoTranslate
-const AutoTranslateContext = createContext();
-
-// Create a Provider Component
-export const AutoTranslateProvider = ({ children, router, locales = ["en", "es"], defaultLocale = "en" }) => {
-    // You can include any state or methods you want to share via context here
-
-    return (
-        <AutoTranslateContext.Provider value={{ router, locales, defaultLocale }}>
-            {children}
-        </AutoTranslateContext.Provider>
-    );
-};
-
 export const AutoTranslate = ({ tKey, children }) => {
-    const { router, locales } = useContext(AutoTranslateContext);
+    const router = useRouter()
+
     const [initialized, setInitialized] = useState(false)
     const [loading, setLoading] = useState(false)
     const [translated, setTranslated] = useState(false)
 
     // Get User's locale
-    const locale = router.locale
+    const locale = useLocale()
 
-    // console.log("[AutoTranslate] Current Locale: ", locale)
+    console.log("[AutoTranslate] Current Locale: ", locale)
+
+    const t = useTranslations('Index');
+
+    console.log(t('title'))
+
+
+    return null
 
     // Get namespace from pathname, which is the first part of the pathname
     let namespace = router.pathname.split("/")[1]
@@ -43,7 +37,7 @@ export const AutoTranslate = ({ tKey, children }) => {
 
     console.log("[AutoTranslate] Namespace: ", namespace)
 
-    const { t } = useTranslation(namespace)
+    // const { t } = useTranslation(namespace)
 
     // Only automatically run translations in dev mode
     if (isDev) {
@@ -94,7 +88,7 @@ export const AutoTranslate = ({ tKey, children }) => {
                 console.log("[AutoTranslate] Translations Complete! 😎")
 
                 if (locale != defaultLocale) {
-                    router.reload()
+                    // router.reload()
                 } else {
                     setTranslated(true)
                     setLoading(false)

@@ -5,10 +5,10 @@ import commonjs from "@rollup/plugin-commonjs";
 
 export default [
     {
-        input: 'src/AutoTranslate.js',
+        input: 'src/index.js',
         output: {
-            name: 'browser',
-            file: 'dist/browser.js',
+            name: 'index',
+            file: 'dist/index.js',
             format: 'esm'
         },
         plugins: [
@@ -21,14 +21,12 @@ export default [
             commonjs(),
         ],
         external: [
-            'react',
-            'react-dom',
-            'next-i18next',
-            'react-i18next'
+            // 'react',
+            // 'next-intl'
         ]
     },
     {
-        input: 'src/TranslateRoute.js',
+        input: 'src/server.js',
         output: {
             name: 'server',
             file: 'dist/server.js',
@@ -44,11 +42,9 @@ export default [
             commonjs(),
         ],
         external: [
-            'fs',
-            'path',
-            'openai-edge',
-            'next-i18next',
-            'react-i18next'
+            // 'fs',
+            //'path',
+            // 'openai-edge'
         ]
     }
 ];
