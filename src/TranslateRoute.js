@@ -1,12 +1,6 @@
 import fs from "fs"
 import path from "path"
-
-import { Configuration, OpenAIApi } from 'openai-edge'
-
-const openaiConfig = new Configuration({
-    apiKey: process.env.OPENAI_API_KEY
-})
-const openai = new OpenAIApi(openaiConfig)
+import axios from "axios"
 
 const messagesPath = "/messages"
 const isDev = process.env.NODE_ENV === 'development';
@@ -207,37 +201,42 @@ async function gptTranslate(message, model, fromLocale, toLocale) {
     // System message to instruct the model for translation
     const systemMessage = {
         role: 'system',
-        content: `
-        Translate the user's text from ${fromLocale} to ${toLocale}.
-        Only respond with the exact translation of the user's input.
-        `
+        content: `Translate the user's text from ${fromLocale} to ${toLocale}. Only respond with the exact translation of the user's input.`
     };
 
-    // Add a user message with the text to translate
+    // User message with the text to translate
     const userMessage = {
         role: 'user',
         content: message
     };
 
-    // Messages array combining the system and user messages
+    // Combining system and user messages
     const messages = [systemMessage, userMessage];
 
-    // Ask OpenAI for a streaming chat completion given the prompt
-    const response = await openai.createChatCompletion({
-        model: model,
-        messages
-    });
+    try {
+        // Axios POST request to OpenAI API
+        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+            model: model,
+            messages: messages
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+            }
+        });
 
-    const data = (await response.json())
+        // Logging for development environment
+        if (isDev) {
+            console.log("[TranslateRoute] GPT Response with Axios:\n", JSON.stringify(response.data, null, 2));
+        }
 
-    if (isDev) {
-        console.log("[TranslateRoute] GPT Response:\n", JSON.stringify(data, null, 2))
+        // Extracting the translation from the response
+        const translatedText = response.data.choices[0].message.content;
+
+        // Returning the translation
+        return { "translation": translatedText };
+    } catch (error) {
+        console.error("Error in Axios request:", error);
+        throw error;
     }
-
-    // Extracting the translation from the response
-    const translatedText = data.choices[0].message.content;
-
-    // Returning the translation in the desired JSON format
-    return { "translation": translatedText };
 }
-

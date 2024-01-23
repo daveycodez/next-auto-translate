@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Configuration, OpenAIApi } from 'openai-edge';
+import axios from 'axios';
 
 function _regeneratorRuntime() {
   _regeneratorRuntime = function () {
@@ -398,10 +398,6 @@ function _createForOfIteratorHelper(o, allowArrayLike) {
   };
 }
 
-var openaiConfig = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY
-});
-var openai = new OpenAIApi(openaiConfig);
 var messagesPath = "/messages";
 var isDev = process.env.NODE_ENV === 'development';
 var TranslateRoute = /*#__PURE__*/function () {
@@ -825,45 +821,53 @@ function gptTranslate(_x26, _x27, _x28, _x29) {
 }
 function _gptTranslate() {
   _gptTranslate = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee8(message, model, fromLocale, toLocale) {
-    var systemMessage, userMessage, messages, response, data, translatedText;
+    var systemMessage, userMessage, messages, response, translatedText;
     return _regeneratorRuntime().wrap(function _callee8$(_context8) {
       while (1) switch (_context8.prev = _context8.next) {
         case 0:
           // System message to instruct the model for translation
           systemMessage = {
             role: 'system',
-            content: "\n        Translate the user's text from ".concat(fromLocale, " to ").concat(toLocale, ".\n        Only respond with the exact translation of the user's input.\n        ")
-          }; // Add a user message with the text to translate
+            content: "Translate the user's text from ".concat(fromLocale, " to ").concat(toLocale, ". Only respond with the exact translation of the user's input.")
+          }; // User message with the text to translate
           userMessage = {
             role: 'user',
             content: message
-          }; // Messages array combining the system and user messages
-          messages = [systemMessage, userMessage]; // Ask OpenAI for a streaming chat completion given the prompt
-          _context8.next = 5;
-          return openai.createChatCompletion({
+          }; // Combining system and user messages
+          messages = [systemMessage, userMessage];
+          _context8.prev = 3;
+          _context8.next = 6;
+          return axios.post('https://api.openai.com/v1/chat/completions', {
             model: model,
             messages: messages
+          }, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': "Bearer ".concat(process.env.OPENAI_API_KEY)
+            }
           });
-        case 5:
+        case 6:
           response = _context8.sent;
-          _context8.next = 8;
-          return response.json();
-        case 8:
-          data = _context8.sent;
+          // Logging for development environment
           if (isDev) {
-            console.log("[TranslateRoute] GPT Response:\n", JSON.stringify(data, null, 2));
+            console.log("[TranslateRoute] GPT Response with Axios:\n", JSON.stringify(response.data, null, 2));
           }
 
           // Extracting the translation from the response
-          translatedText = data.choices[0].message.content; // Returning the translation in the desired JSON format
+          translatedText = response.data.choices[0].message.content; // Returning the translation
           return _context8.abrupt("return", {
             "translation": translatedText
           });
         case 12:
+          _context8.prev = 12;
+          _context8.t0 = _context8["catch"](3);
+          console.error("Error in Axios request:", _context8.t0);
+          throw _context8.t0;
+        case 16:
         case "end":
           return _context8.stop();
       }
-    }, _callee8);
+    }, _callee8, null, [[3, 12]]);
   }));
   return _gptTranslate.apply(this, arguments);
 }

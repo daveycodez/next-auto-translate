@@ -4,7 +4,7 @@ export const AutoTranslateContext = createContext();
 
 const isDev = process.env.NODE_ENV === 'development';
 
-export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en", gptModel = 'gpt-3.5-turbo', locales, locale, debug }) => {
+export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en", gptModel = 'gpt-3.5-turbo', locales, locale, debug, messages }) => {
     const [translationQueue, setTranslationQueue] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -73,7 +73,7 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
     };
 
     return (
-        <AutoTranslateContext.Provider value={{ pathname, defaultLocale, debug, locales, addToQueue, debug }}>
+        <AutoTranslateContext.Provider value={{ pathname, defaultLocale, debug, locales, addToQueue, debug, messages }}>
             {children}
             {isProcessing && translatingElement}
         </AutoTranslateContext.Provider>

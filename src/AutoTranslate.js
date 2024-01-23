@@ -1,4 +1,3 @@
-import { useTranslations, useLocale, useMessages } from 'next-intl';
 import React, { useContext, useEffect, useState } from 'react';
 import { AutoTranslateContext } from './AutoTranslateProvider';
 
@@ -6,10 +5,8 @@ const isDev = process.env.NODE_ENV === 'development';
 
 
 export const AutoTranslate = ({ tKey, children, namespace }) => {
-    const { pathname, defaultLocale, locales, debug, addToQueue } = useContext(AutoTranslateContext);
-    const locale = useLocale()
+    const { pathname, defaultLocale, locales, debug, addToQueue, messages, locale } = useContext(AutoTranslateContext);
     const [initialized, setInitialized] = useState(false)
-    const messages = useMessages()
 
     // If no locales provided, throw getTranslationProps error
     if (!locales && (debug && isDev) && typeof window !== 'undefined') {

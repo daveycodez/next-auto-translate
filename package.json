@@ -8,20 +8,18 @@
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
-    "link": "npm link && npm link ../Ink-Wizard/node_modules/next-intl ../Ink-Wizard/node_modules/use-intl ../Ink-Wizard/node_modules/use-intl ../Ink-Wizard/node_modules/react"
+    "link": "npm link && npm link ../Ink-Wizard/node_modules/react"
   },
-  "version": "1.0.47",
+  "version": "1.0.48",
   "description": "Automagical translation for NextJS",
   "private": false,
   "keywords": [],
   "author": "LeakedDave",
   "license": "ISC",
   "peerDependencies": {
-    "ai": "^2.2.31",
-    "next": "^14.1.0",
-    "openai-edge": "^1.2.2",
+    "next-intl": "^3.5.0",
     "react": "^18.2.0",
-    "next-intl": "^3.5.0"
+    "axios": "^1.6.5"
   },
   "devDependencies": {
     "@babel/core": "^7.23.7",

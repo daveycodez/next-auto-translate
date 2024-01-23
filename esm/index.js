@@ -1,4 +1,3 @@
-import { useLocale, useMessages } from 'next-intl';
 import React, { createContext, useState, useEffect, useContext } from 'react';
 
 function _iterableToArrayLimit(r, l) {
@@ -433,7 +432,8 @@ var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
     gptModel = _ref$gptModel === void 0 ? 'gpt-3.5-turbo' : _ref$gptModel,
     locales = _ref.locales,
     locale = _ref.locale,
-    debug = _ref.debug;
+    debug = _ref.debug,
+    messages = _ref.messages;
   var _useState = useState([]),
     _useState2 = _slicedToArray(_useState, 2),
     translationQueue = _useState2[0],
@@ -550,13 +550,13 @@ var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
     };
   }();
   return /*#__PURE__*/React.createElement(AutoTranslateContext.Provider, {
-    value: _defineProperty({
+    value: _defineProperty(_defineProperty({
       pathname: pathname,
       defaultLocale: defaultLocale,
       debug: debug,
       locales: locales,
       addToQueue: addToQueue
-    }, "debug", debug)
+    }, "debug", debug), "messages", messages)
   }, children, isProcessing && translatingElement);
 };
 var translatingElement = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, "\n                @keyframes ellipsis {\n                    0% { content: ''; }\n                    25% { content: '.'; }\n                    50% { content: '..'; }\n                    75% { content: '...'; }\n                    100% { content: '...'; }\n                }\n\n                .ellipsis::after {\n                    content: '';\n                    animation: ellipsis 2.0s infinite;\n                }\n            "), /*#__PURE__*/React.createElement("span", {
@@ -588,13 +588,13 @@ var AutoTranslate = function AutoTranslate(_ref) {
     defaultLocale = _useContext.defaultLocale,
     locales = _useContext.locales,
     debug = _useContext.debug,
-    addToQueue = _useContext.addToQueue;
-  var locale = useLocale();
+    addToQueue = _useContext.addToQueue,
+    messages = _useContext.messages,
+    locale = _useContext.locale;
   var _useState = useState(false),
     _useState2 = _slicedToArray(_useState, 2),
     initialized = _useState2[0],
     setInitialized = _useState2[1];
-  var messages = useMessages();
 
   // If no locales provided, throw getTranslationProps error
   if (!locales && debug && isDev && typeof window !== 'undefined') {

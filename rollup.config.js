@@ -20,10 +20,6 @@ export default [
                 babelHelpers: 'bundled'
             }),
             commonjs(),
-        ],
-        external: [
-            // 'react',
-            // 'next-intl'
         ]
     },
     {
@@ -42,11 +38,6 @@ export default [
                 babelHelpers: 'bundled'
             }),
             commonjs(),
-        ],
-        external: [
-            // 'fs',
-            //'path',
-            // 'openai-edge'
         ]
     }
 ];
