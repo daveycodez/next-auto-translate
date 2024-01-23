@@ -1,3 +1,7 @@
+import fs from 'fs';
+import path from 'path';
+import { Configuration, OpenAIApi } from 'openai-edge';
+
 function _regeneratorRuntime() {
   _regeneratorRuntime = function () {
     return e;
@@ -329,34 +333,527 @@ function _asyncToGenerator(fn) {
     });
   };
 }
+function _unsupportedIterableToArray(o, minLen) {
+  if (!o) return;
+  if (typeof o === "string") return _arrayLikeToArray(o, minLen);
+  var n = Object.prototype.toString.call(o).slice(8, -1);
+  if (n === "Object" && o.constructor) n = o.constructor.name;
+  if (n === "Map" || n === "Set") return Array.from(o);
+  if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
+}
+function _arrayLikeToArray(arr, len) {
+  if (len == null || len > arr.length) len = arr.length;
+  for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+  return arr2;
+}
+function _createForOfIteratorHelper(o, allowArrayLike) {
+  var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"];
+  if (!it) {
+    if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") {
+      if (it) o = it;
+      var i = 0;
+      var F = function () {};
+      return {
+        s: F,
+        n: function () {
+          if (i >= o.length) return {
+            done: true
+          };
+          return {
+            done: false,
+            value: o[i++]
+          };
+        },
+        e: function (e) {
+          throw e;
+        },
+        f: F
+      };
+    }
+    throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+  var normalCompletion = true,
+    didErr = false,
+    err;
+  return {
+    s: function () {
+      it = it.call(o);
+    },
+    n: function () {
+      var step = it.next();
+      normalCompletion = step.done;
+      return step;
+    },
+    e: function (e) {
+      didErr = true;
+      err = e;
+    },
+    f: function () {
+      try {
+        if (!normalCompletion && it.return != null) it.return();
+      } finally {
+        if (didErr) throw err;
+      }
+    }
+  };
+}
 
 var getTranslationProps = /*#__PURE__*/function () {
   var _ref2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(_ref) {
-    var locale, locales, defaultLocale;
+    var locale, locales, defaultLocale, messages;
     return _regeneratorRuntime().wrap(function _callee$(_context) {
       while (1) switch (_context.prev = _context.next) {
         case 0:
           locale = _ref.locale, locales = _ref.locales, defaultLocale = _ref.defaultLocale;
-          _context.t0 = locales;
-          _context.t1 = defaultLocale;
+          messages = [];
+          _context.prev = 2;
           _context.next = 5;
           return import("messages/".concat(locale, ".json"));
         case 5:
-          _context.t2 = _context.sent["default"];
+          messages = _context.sent["default"];
+          _context.next = 11;
+          break;
+        case 8:
+          _context.prev = 8;
+          _context.t0 = _context["catch"](2);
+          console.error(_context.t0);
+        case 11:
           return _context.abrupt("return", {
-            locales: _context.t0,
-            defaultLocale: _context.t1,
-            messages: _context.t2
+            locales: locales,
+            defaultLocale: defaultLocale,
+            messages: messages
           });
-        case 7:
+        case 12:
         case "end":
           return _context.stop();
       }
-    }, _callee);
+    }, _callee, null, [[2, 8]]);
   }));
   return function getTranslationProps(_x) {
     return _ref2.apply(this, arguments);
   };
 }();
 
-export { getTranslationProps };
+var openaiConfig = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY
+});
+var openai = new OpenAIApi(openaiConfig);
+var messagesPath = "/messages";
+var isDev = process.env.NODE_ENV === 'development';
+var TranslateRoute = /*#__PURE__*/function () {
+  var _ref = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(req, res) {
+    var _req$body, namespace, tKey, message, locales, defaultLocale, _req$body$gptModel, gptModel, runTranslate;
+    return _regeneratorRuntime().wrap(function _callee$(_context) {
+      while (1) switch (_context.prev = _context.next) {
+        case 0:
+          _req$body = req.body, namespace = _req$body.namespace, tKey = _req$body.tKey, message = _req$body.message, locales = _req$body.locales, defaultLocale = _req$body.defaultLocale, _req$body$gptModel = _req$body.gptModel, gptModel = _req$body$gptModel === void 0 ? 'gpt-3.5-turbo' : _req$body$gptModel, _req$body.debug;
+          if (isDev) {
+            _context.next = 4;
+            break;
+          }
+          res.status(403).json({
+            error: "Forbidden"
+          });
+          return _context.abrupt("return");
+        case 4:
+          if (!(!namespace || !tKey || !message || !locales || !defaultLocale)) {
+            _context.next = 7;
+            break;
+          }
+          res.status(400).json({
+            error: "Missing required parameter(s)"
+          });
+          return _context.abrupt("return");
+        case 7:
+          _context.prev = 7;
+          if (!(req.query.action == "check")) {
+            _context.next = 15;
+            break;
+          }
+          _context.next = 11;
+          return needsTranslations(namespace, tKey, message, locales, defaultLocale);
+        case 11:
+          runTranslate = _context.sent;
+          res.json({
+            run_translate: runTranslate
+          });
+          _context.next = 22;
+          break;
+        case 15:
+          if (!(req.query.action == "run")) {
+            _context.next = 21;
+            break;
+          }
+          _context.next = 18;
+          return runTranslations(namespace, tKey, message, locales, defaultLocale, gptModel);
+        case 18:
+          res.json({
+            success: true
+          });
+          _context.next = 22;
+          break;
+        case 21:
+          res.status(400).json({
+            error: "Invalid action"
+          });
+        case 22:
+          _context.next = 27;
+          break;
+        case 24:
+          _context.prev = 24;
+          _context.t0 = _context["catch"](7);
+          res.status(500).json({
+            error: _context.t0
+          });
+        case 27:
+        case "end":
+          return _context.stop();
+      }
+    }, _callee, null, [[7, 24]]);
+  }));
+  return function TranslateRoute(_x, _x2) {
+    return _ref.apply(this, arguments);
+  };
+}();
+function needsTranslations(_x3, _x4, _x5, _x6, _x7) {
+  return _needsTranslations.apply(this, arguments);
+}
+function _needsTranslations() {
+  _needsTranslations = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2(namespace, tKey, message, locales, defaultLocale) {
+    var defaultLocaleTranslations, defaultMessage, _iterator, _step, locale, translations;
+    return _regeneratorRuntime().wrap(function _callee2$(_context2) {
+      while (1) switch (_context2.prev = _context2.next) {
+        case 0:
+          _context2.next = 2;
+          return loadTranslations(defaultLocale);
+        case 2:
+          defaultLocaleTranslations = _context2.sent;
+          console.log("[TranslateRoute] Checking translations for:", namespace, tKey, message, locales, defaultLocale);
+
+          // Check if namespace exists
+          if (defaultLocaleTranslations[namespace]) {
+            _context2.next = 7;
+            break;
+          }
+          if (isDev) {
+            console.log("[TranslateRoute] Namespace not found for ".concat(defaultLocale, ":"), namespace);
+          }
+          return _context2.abrupt("return", true);
+        case 7:
+          // Check if default message is changed or not found
+          defaultMessage = defaultLocaleTranslations[namespace][tKey];
+          if (!(!defaultMessage || defaultMessage != message)) {
+            _context2.next = 11;
+            break;
+          }
+          console.log("[TranslateRoute] Message not found for ".concat(defaultLocale, ", Namespace: ").concat(namespace, ", Key: ").concat(tKey));
+          return _context2.abrupt("return", true);
+        case 11:
+          // Check if any locale is missing the translation
+          _iterator = _createForOfIteratorHelper(locales);
+          _context2.prev = 12;
+          _iterator.s();
+        case 14:
+          if ((_step = _iterator.n()).done) {
+            _context2.next = 25;
+            break;
+          }
+          locale = _step.value;
+          if (!(locale != defaultLocale)) {
+            _context2.next = 23;
+            break;
+          }
+          _context2.next = 19;
+          return loadTranslations(locale);
+        case 19:
+          translations = _context2.sent;
+          if (!(!translations[namespace] || !translations[namespace][tKey])) {
+            _context2.next = 23;
+            break;
+          }
+          console.log("[TranslateRoute] Translation not found for ".concat(locale, ", Namespace: ").concat(namespace, ", Key: ").concat(tKey));
+          return _context2.abrupt("return", true);
+        case 23:
+          _context2.next = 14;
+          break;
+        case 25:
+          _context2.next = 30;
+          break;
+        case 27:
+          _context2.prev = 27;
+          _context2.t0 = _context2["catch"](12);
+          _iterator.e(_context2.t0);
+        case 30:
+          _context2.prev = 30;
+          _iterator.f();
+          return _context2.finish(30);
+        case 33:
+          return _context2.abrupt("return", false);
+        case 34:
+        case "end":
+          return _context2.stop();
+      }
+    }, _callee2, null, [[12, 27, 30, 33]]);
+  }));
+  return _needsTranslations.apply(this, arguments);
+}
+function runTranslations(_x11, _x12, _x13, _x14, _x15, _x16) {
+  return _runTranslations.apply(this, arguments);
+}
+function _runTranslations() {
+  _runTranslations = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(namespace, tKey, message, locales, defaultLocale, gptModel) {
+    var defaultTranslations, messageChanged, _iterator2, _step2, locale, translations, _iterator3, _step3, _locale, _translations, translation, newTranslations;
+    return _regeneratorRuntime().wrap(function _callee4$(_context4) {
+      while (1) switch (_context4.prev = _context4.next) {
+        case 0:
+          _context4.next = 2;
+          return loadTranslations(defaultLocale);
+        case 2:
+          defaultTranslations = _context4.sent;
+          messageChanged = false;
+          if (!defaultTranslations[namespace] || defaultTranslations[namespace][tKey] != message) {
+            messageChanged = true;
+          }
+
+          // Set the default message & delete the message from all other locales
+          _iterator2 = _createForOfIteratorHelper(locales);
+          _context4.prev = 6;
+          _iterator2.s();
+        case 8:
+          if ((_step2 = _iterator2.n()).done) {
+            _context4.next = 19;
+            break;
+          }
+          locale = _step2.value;
+          _context4.next = 12;
+          return loadTranslations(locale);
+        case 12:
+          translations = _context4.sent;
+          if (!translations[namespace]) {
+            if (isDev) {
+              console.log("[TranslateRoute] Creating namespace ".concat(namespace, " for ").concat(locale, ":"));
+            }
+            translations[namespace] = {};
+          }
+          if (locale == defaultLocale) {
+            if (isDev) {
+              console.log("[TranslateRoute] Setting default message for ".concat(locale, ": ").concat(namespace, ".").concat(tKey, ":"), message);
+            }
+            translations[namespace][tKey] = message;
+          } else {
+            if (isDev) {
+              console.log("[TranslateRoute] Deleting translation for ".concat(locale, ": ").concat(namespace, ".").concat(tKey));
+            }
+            if (messageChanged) {
+              delete translations[namespace][tKey];
+            }
+          }
+          _context4.next = 17;
+          return saveTranslations(locale, translations);
+        case 17:
+          _context4.next = 8;
+          break;
+        case 19:
+          _context4.next = 24;
+          break;
+        case 21:
+          _context4.prev = 21;
+          _context4.t0 = _context4["catch"](6);
+          _iterator2.e(_context4.t0);
+        case 24:
+          _context4.prev = 24;
+          _iterator2.f();
+          return _context4.finish(24);
+        case 27:
+          // Translate the message to all other locales
+          _iterator3 = _createForOfIteratorHelper(locales);
+          _context4.prev = 28;
+          _iterator3.s();
+        case 30:
+          if ((_step3 = _iterator3.n()).done) {
+            _context4.next = 51;
+            break;
+          }
+          _locale = _step3.value;
+          if (!(_locale == defaultLocale)) {
+            _context4.next = 34;
+            break;
+          }
+          return _context4.abrupt("continue", 49);
+        case 34:
+          _context4.next = 36;
+          return loadTranslations(_locale);
+        case 36:
+          _translations = _context4.sent;
+          if (!(_translations[namespace] && _translations[namespace][tKey])) {
+            _context4.next = 39;
+            break;
+          }
+          return _context4.abrupt("continue", 49);
+        case 39:
+          _context4.next = 41;
+          return translateMessage(message, defaultLocale, _locale, gptModel);
+        case 41:
+          translation = _context4.sent;
+          _context4.next = 44;
+          return loadTranslations(_locale);
+        case 44:
+          newTranslations = _context4.sent;
+          if (isDev) {
+            console.log("[TranslateRoute] Setting translation for ".concat(_locale, ": ").concat(namespace, ".").concat(tKey, ":"), translation);
+          }
+          newTranslations[namespace][tKey] = translation;
+          _context4.next = 49;
+          return saveTranslations(_locale, newTranslations);
+        case 49:
+          _context4.next = 30;
+          break;
+        case 51:
+          _context4.next = 56;
+          break;
+        case 53:
+          _context4.prev = 53;
+          _context4.t1 = _context4["catch"](28);
+          _iterator3.e(_context4.t1);
+        case 56:
+          _context4.prev = 56;
+          _iterator3.f();
+          return _context4.finish(56);
+        case 59:
+        case "end":
+          return _context4.stop();
+      }
+    }, _callee4, null, [[6, 21, 24, 27], [28, 53, 56, 59]]);
+  }));
+  return _runTranslations.apply(this, arguments);
+}
+function loadTranslations(_x17) {
+  return _loadTranslations.apply(this, arguments);
+}
+function _loadTranslations() {
+  _loadTranslations = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee5(locale) {
+    var jsonPath;
+    return _regeneratorRuntime().wrap(function _callee5$(_context5) {
+      while (1) switch (_context5.prev = _context5.next) {
+        case 0:
+          _context5.prev = 0;
+          jsonPath = path.join(process.cwd(), messagesPath, "".concat(locale, ".json"));
+          if (!fs.existsSync(jsonPath)) {
+            _context5.next = 6;
+            break;
+          }
+          return _context5.abrupt("return", JSON.parse(fs.readFileSync(jsonPath, 'utf8')));
+        case 6:
+          if (isDev) {
+            console.log("[TranslateRoute] File not found:", jsonPath);
+          }
+        case 7:
+          return _context5.abrupt("return", {});
+        case 10:
+          _context5.prev = 10;
+          _context5.t0 = _context5["catch"](0);
+          console.error("[TranslateRoute] Error loading translations:", _context5.t0);
+          return _context5.abrupt("return", {});
+        case 14:
+        case "end":
+          return _context5.stop();
+      }
+    }, _callee5, null, [[0, 10]]);
+  }));
+  return _loadTranslations.apply(this, arguments);
+}
+function saveTranslations(_x18, _x19) {
+  return _saveTranslations.apply(this, arguments);
+}
+function _saveTranslations() {
+  _saveTranslations = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee6(locale, translations) {
+    var jsonPath;
+    return _regeneratorRuntime().wrap(function _callee6$(_context6) {
+      while (1) switch (_context6.prev = _context6.next) {
+        case 0:
+          jsonPath = path.join(process.cwd(), messagesPath, "".concat(locale, ".json"));
+          fs.writeFileSync(jsonPath, JSON.stringify(translations, null, 2), 'utf8');
+        case 2:
+        case "end":
+          return _context6.stop();
+      }
+    }, _callee6);
+  }));
+  return _saveTranslations.apply(this, arguments);
+}
+function translateMessage(_x20, _x21, _x22, _x23) {
+  return _translateMessage.apply(this, arguments);
+}
+function _translateMessage() {
+  _translateMessage = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee7(message, fromLocale, toLocale, model) {
+    var response;
+    return _regeneratorRuntime().wrap(function _callee7$(_context7) {
+      while (1) switch (_context7.prev = _context7.next) {
+        case 0:
+          _context7.next = 2;
+          return gptTranslate(message, model, fromLocale, toLocale);
+        case 2:
+          response = _context7.sent;
+          return _context7.abrupt("return", response.translation);
+        case 4:
+        case "end":
+          return _context7.stop();
+      }
+    }, _callee7);
+  }));
+  return _translateMessage.apply(this, arguments);
+}
+function gptTranslate(_x24, _x25, _x26, _x27) {
+  return _gptTranslate.apply(this, arguments);
+}
+function _gptTranslate() {
+  _gptTranslate = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee8(message, model, fromLocale, toLocale) {
+    var systemMessage, userMessage, messages, response, data, translatedText;
+    return _regeneratorRuntime().wrap(function _callee8$(_context8) {
+      while (1) switch (_context8.prev = _context8.next) {
+        case 0:
+          // System message to instruct the model for translation
+          systemMessage = {
+            role: 'system',
+            content: "\n        Translate the user's text from ".concat(fromLocale, " to ").concat(toLocale, ".\n        Only respond with the exact translation of the user's input.\n        ")
+          }; // Add a user message with the text to translate
+          userMessage = {
+            role: 'user',
+            content: message
+          }; // Messages array combining the system and user messages
+          messages = [systemMessage, userMessage]; // Ask OpenAI for a streaming chat completion given the prompt
+          _context8.next = 5;
+          return openai.createChatCompletion({
+            model: model,
+            messages: messages
+          });
+        case 5:
+          response = _context8.sent;
+          _context8.next = 8;
+          return response.json();
+        case 8:
+          data = _context8.sent;
+          if (isDev) {
+            console.log("[TranslateRoute] GPT Response:", JSON.stringify(data));
+          }
+
+          // Extracting the translation from the response
+          translatedText = data.choices[0].message.content;
+          if (isDev) {
+            console.log("[TranslateRoute] Translated text:", translatedText);
+          }
+
+          // Returning the translation in the desired JSON format
+          return _context8.abrupt("return", {
+            "translation": translatedText
+          });
+        case 13:
+        case "end":
+          return _context8.stop();
+      }
+    }, _callee8);
+  }));
+  return _gptTranslate.apply(this, arguments);
+}
+
+export { TranslateRoute, getTranslationProps };

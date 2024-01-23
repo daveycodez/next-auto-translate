@@ -1,7 +1,6 @@
 import fs from "fs"
 import path from "path"
 
-// OpenAI API
 import { Configuration, OpenAIApi } from 'openai-edge'
 
 const openaiConfig = new Configuration({
@@ -9,21 +8,31 @@ const openaiConfig = new Configuration({
 })
 const openai = new OpenAIApi(openaiConfig)
 
-const basePath = "/public/locales/"
-const defaultLocale = "en"
-const locales = ["en", "de", "es", "ja"];
+const messagesPath = "/messages"
+const isDev = process.env.NODE_ENV === 'development';
 
 
 export const TranslateRoute = async (req, res) => {
-    const { namespace, keyPrefix, tKey, text } = req.body
+    const { namespace, tKey, message, locales, defaultLocale, gptModel = 'gpt-3.5-turbo', debug = false } = req.body
+
+    if (!isDev) {
+        res.status(403).json({ error: "Forbidden" })
+        return
+    }
+
+    if (!namespace || !tKey || !message || !locales || !defaultLocale) {
+        res.status(400).json({ error: "Missing required parameter(s)" })
+        return
+    }
 
     try {
         if (req.query.action == "check") {
-            const runTranslate = await needsTranslations(namespace, keyPrefix, tKey, text)
+            const runTranslate = await needsTranslations(namespace, tKey, message, locales, defaultLocale)
 
             res.json({ run_translate: runTranslate })
         } else if (req.query.action == "run") {
-            await runTranslations(namespace, keyPrefix, tKey, text)
+            await runTranslations(namespace, tKey, message, locales, defaultLocale, gptModel)
+
             res.json({ success: true })
         } else {
             res.status(400).json({ error: "Invalid action" })
@@ -33,160 +42,160 @@ export const TranslateRoute = async (req, res) => {
     }
 }
 
-function getNestedValue(obj, keyPath) {
-    return keyPath.split('.').reduce((current, key) => {
-        return current ? current[key] : undefined;
-    }, obj);
-}
 
-async function needsTranslations(namespace, keyPrefix, tKey, text) {
-    // Load the default locale JSON file for the namespace
-    const defaultLocaleTranslations = await loadJSONFile(namespace);
+async function needsTranslations(namespace, tKey, message, locales, defaultLocale) {
+    const defaultLocaleTranslations = await loadTranslations(defaultLocale);
 
-    // Check if the JSON file for the namespace exists
-    if (!defaultLocaleTranslations) {
-        console.log('Translations JSON not found:', namespace)
-        return true; // Needs translations because namespace file doesn't exist
+    console.log("[TranslateRoute] Checking translations for:", namespace, tKey, message, locales, defaultLocale)
+
+    // Check if namespace exists
+    if (!defaultLocaleTranslations[namespace]) {
+        if (isDev) {
+            console.log(`[TranslateRoute] Namespace not found for ${defaultLocale}:`, namespace)
+        }
+
+        return true;
     }
 
-    // Construct the full translation key
-    const fullKey = keyPrefix ? `${keyPrefix}.${tKey}` : tKey;
-
-    // Check if the key exists in the default locale
-    const defaultValue = getNestedValue(defaultLocaleTranslations, fullKey);
-    if (defaultValue === undefined) {
-        console.log('Translations key not found:', fullKey)
-        return true; // Needs translations because key is missing in default locale
+    // Check if default message is changed or not found
+    const defaultMessage = defaultLocaleTranslations[namespace][tKey];
+    if (!defaultMessage || defaultMessage != message) {
+        console.log(`[TranslateRoute] Message not found for ${defaultLocale}, Namespace: ${namespace}, Key: ${tKey}`)
+        return true;
     }
 
-    if (defaultValue != text) {
-        console.log('Translations key has different value:', fullKey)
-        return true; // Needs translations because key has different value in default locale
-    }
-
-    // Check other locales
+    // Check if any locale is missing the translation
     for (const locale of locales) {
-        if (locale !== defaultLocale) {
-            const translations = await loadJSONFile(namespace, locale);
-
-            if (!translations) {
-                console.log('Translations JSON not found:', namespace, locale)
-                return true; // Needs translations because namespace file doesn't exist in other locales
-            }
-
-            // Check if the key exists and has content in each locale
-            const value = getNestedValue(translations, fullKey);
-            if (value === undefined || value === '') {
-                console.log('Translations key not found or empty:', fullKey, locale)
-                return true; // Needs translations because key is missing or empty in other locales
+        if (locale != defaultLocale) {
+            const translations = await loadTranslations(locale);
+            if (!translations[namespace] || !translations[namespace][tKey]) {
+                console.log(`[TranslateRoute] Translation not found for ${locale}, Namespace: ${namespace}, Key: ${tKey}`)
+                return true;
             }
         }
     }
 
-    // If all checks pass, no translations are needed
+    // Everything is already translated
     return false;
 }
 
-// Mock translation function (replace this with your actual translation service)
-async function translateText(text, fromLocale, toLocale) {
-    // Here, you would call an external translation service API
-    // This is just a mock response to demonstrate the structure
-    const response = await chatGptTranslate(text, fromLocale, toLocale);
+
+async function runAllTranslations(locales, defaultLocale, gptModel) {
+    // Loop through all namespaces and tKeys in defaultTranslations, and call runTranslations on it
+    const defaultTranslations = await loadTranslations(defaultLocale);
+
+    for (const namespace in defaultTranslations) {
+        for (const tKey in defaultTranslations[namespace]) {
+            const message = defaultTranslations[namespace][tKey];
+
+            await runTranslations(namespace, tKey, message, locales, defaultLocale, gptModel);
+        }
+    }
+}
+
+async function runTranslations(namespace, tKey, message, locales, defaultLocale, gptModel) {
+    const defaultTranslations = await loadTranslations(defaultLocale);
+
+    let messageChanged = false
+    if (!defaultTranslations[namespace] || defaultTranslations[namespace][tKey] != message) {
+        messageChanged = true
+    }
+
+    // Set the default message & delete the message from all other locales
+    for (const locale of locales) {
+        const translations = await loadTranslations(locale);
+
+        if (!translations[namespace]) {
+            if (isDev) {
+                console.log(`[TranslateRoute] Creating namespace ${namespace} for ${locale}:`)
+            }
+
+            translations[namespace] = {};
+        }
+
+        if (locale == defaultLocale) {
+            if (isDev) {
+                console.log(`[TranslateRoute] Setting default message for ${locale}: ${namespace}.${tKey}:`, message)
+            }
+
+            translations[namespace][tKey] = message;
+        } else {
+            if (isDev) {
+                console.log(`[TranslateRoute] Deleting translation for ${locale}: ${namespace}.${tKey}`)
+            }
+
+            if (messageChanged) {
+                delete translations[namespace][tKey];
+            }
+        }
+
+        await saveTranslations(locale, translations);
+    }
+
+    // Translate the message to all other locales
+    for (const locale of locales) {
+        if (locale == defaultLocale) {
+            continue;
+        }
+
+        const translations = await loadTranslations(locale);
+
+        // If this locale already has a translation, skip it
+        if (translations[namespace] && translations[namespace][tKey]) continue
+
+        const translation = await translateMessage(message, defaultLocale, locale, gptModel);
+
+        const newTranslations = await loadTranslations(locale);
+
+        if (isDev) {
+            console.log(`[TranslateRoute] Setting translation for ${locale}: ${namespace}.${tKey}:`, translation)
+        }
+
+        newTranslations[namespace][tKey] = translation;
+
+        await saveTranslations(locale, newTranslations);
+
+    }
+}
+
+
+
+async function loadTranslations(locale) {
+    try {
+        const jsonPath = path.join(process.cwd(), messagesPath, `${locale}.json`);
+
+        if (fs.existsSync(jsonPath)) {
+            return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+        } else {
+            if (isDev) {
+                console.log("[TranslateRoute] File not found:", jsonPath)
+            }
+        }
+
+        return {};
+    } catch (error) {
+        console.error("[TranslateRoute] Error loading translations:", error)
+        return {}
+    }
+}
+
+
+async function saveTranslations(locale, translations) {
+    const jsonPath = path.join(process.cwd(), messagesPath, `${locale}.json`);
+
+    fs.writeFileSync(jsonPath, JSON.stringify(translations, null, 2), 'utf8');
+}
+
+
+async function translateMessage(message, fromLocale, toLocale, model) {
+    // Translate via Chat GPT API
+    const response = await gptTranslate(message, model, fromLocale, toLocale);
 
     return response.translation;
 }
 
-async function runTranslations(namespace, keyPrefix, tKey, text) {
-    // Load the default locale JSON file for the namespace
-    const defaultLocaleTranslations = await loadJSONFile(namespace, defaultLocale, true);
 
-    // Construct the full translation key
-    const fullKey = keyPrefix ? `${keyPrefix}.${tKey}` : tKey;
-
-    // Set the key to the provided text in the default locale
-    setNestedValue(defaultLocaleTranslations, fullKey, text);
-
-    // Save the updated default locale translations back to the JSON file
-    await saveJSONFile(namespace, defaultLocale, defaultLocaleTranslations);
-
-    // Iterate over all locales and translate the text
-    for (const locale of locales) {
-        if (locale !== defaultLocale) {
-            // Translate text from defaultLocale to the current locale
-            const translatedText = await translateText(text, defaultLocale, locale);
-
-            // Get the locale-specific translations JSON
-            const localeTranslations = await loadJSONFile(namespace, locale, true);
-
-            // Set the translated text in the JSON object
-            setNestedValue(localeTranslations, fullKey, translatedText);
-
-            // Save the updated translations back to the JSON file
-            await saveJSONFile(namespace, locale, localeTranslations);
-        }
-    }
-}
-
-// Helper function to set a nested value in an object based on a key path
-function setNestedValue(obj, keyPath, value) {
-    const keys = keyPath.split('.');
-    let current = obj;
-    for (let i = 0; i < keys.length - 1; i++) {
-        const key = keys[i];
-        if (!(key in current)) {
-            current[key] = {};
-        }
-        current = current[key];
-    }
-    current[keys[keys.length - 1]] = value;
-}
-
-// Helper function to save a JSON object to a file
-async function saveJSONFile(namespace, locale, data) {
-    const jsonPath = path.join(process.cwd(), basePath, locale, `${namespace}.json`);
-    try {
-        fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2), 'utf8');
-    } catch (error) {
-        console.error('Error saving translations JSON:', jsonPath, error);
-        throw error;
-    }
-}
-
-
-function loadJSONFile(namespace, locale = defaultLocale, create = false) {
-    const jsonPath = path.join(process.cwd(), basePath, locale, `${namespace}.json`);
-
-    try {
-        console.debug('Load Translations JSON:', jsonPath);
-
-        // Check if the file exists. If it does, parse and return its content.
-        if (fs.existsSync(jsonPath)) {
-            return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-        } else if (create) {
-            // If the file does not exist and create is true, create an empty JSON file.
-            const dirPath = path.dirname(jsonPath);
-
-            console.debug("Check if dirPath exists", dirPath)
-
-            if (!fs.existsSync(dirPath)) {
-                console.debug('Translations directory not found:', dirPath)
-                // Create the directory path if it doesn't exist.
-                fs.mkdirSync(dirPath, { recursive: true });
-            }
-            fs.writeFileSync(jsonPath, '{}', 'utf8');
-            return {};
-        }
-
-        console.debug('Translations JSON not found:', jsonPath);
-        return null;
-    } catch (error) {
-        console.error('Error loading translations JSON:', jsonPath, error);
-        return null;
-    }
-}
-
-
-async function chatGptTranslate(text, fromLocale, toLocale) {
+async function gptTranslate(message, model, fromLocale, toLocale) {
     // System message to instruct the model for translation
     const systemMessage = {
         role: 'system',
@@ -196,10 +205,10 @@ async function chatGptTranslate(text, fromLocale, toLocale) {
         `
     };
 
-    // User message with the text to be translated
+    // Add a user message with the text to translate
     const userMessage = {
         role: 'user',
-        content: text
+        content: message
     };
 
     // Messages array combining the system and user messages
@@ -207,18 +216,22 @@ async function chatGptTranslate(text, fromLocale, toLocale) {
 
     // Ask OpenAI for a streaming chat completion given the prompt
     const response = await openai.createChatCompletion({
-        model: 'gpt-3.5-turbo',
+        model: model,
         messages
     });
 
     const data = (await response.json())
 
-    console.log(JSON.stringify(data))
+    if (isDev) {
+        console.log("[TranslateRoute] GPT Response:", JSON.stringify(data))
+    }
 
     // Extracting the translation from the response
     const translatedText = data.choices[0].message.content;
 
-    console.log("Translated text:", translatedText)
+    if (isDev) {
+        console.log("[TranslateRoute] Translated text:", translatedText)
+    }
 
     // Returning the translation in the desired JSON format
     return { "translation": translatedText };
