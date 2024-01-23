@@ -8,7 +8,7 @@ export default [
         input: 'src/index.js',
         output: {
             name: 'index',
-            file: 'dist/index.js',
+            file: 'esm/index.js',
             format: 'esm'
         },
         plugins: [
@@ -16,7 +16,8 @@ export default [
             resolve(),
             babel({
                 exclude: 'node_modules/**',
-                presets: ['@babel/env', '@babel/preset-react']
+                presets: ['@babel/env', '@babel/preset-react'],
+                babelHelpers: 'bundled'
             }),
             commonjs(),
         ],
@@ -29,7 +30,7 @@ export default [
         input: 'src/server.js',
         output: {
             name: 'server',
-            file: 'dist/server.js',
+            file: 'esm/server.js',
             format: 'esm'
         },
         plugins: [
@@ -37,7 +38,8 @@ export default [
             resolve(),
             babel({
                 exclude: 'node_modules/**',
-                presets: ['@babel/env']
+                presets: ['@babel/env'],
+                babelHelpers: 'bundled'
             }),
             commonjs(),
         ],

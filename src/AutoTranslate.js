@@ -1,44 +1,70 @@
 import { useTranslations, useLocale } from 'next-intl';
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter } from 'next/router'
+import React, { useContext, useEffect, useState } from 'react';
+import { AutoTranslateContext } from './AutoTranslateProvider';
 
 const isDev = process.env.NODE_ENV === 'development';
 
-const defaultLocale = "en"
 
-export const AutoTranslate = ({ tKey, children }) => {
-    const router = useRouter()
-
+export const AutoTranslate = ({ tKey, children, namespace }) => {
+    const { pathname, defaultLocale, locales, debug } = useContext(AutoTranslateContext);
+    const locale = useLocale()
     const [initialized, setInitialized] = useState(false)
     const [loading, setLoading] = useState(false)
     const [translated, setTranslated] = useState(false)
 
-    // Get User's locale
-    const locale = useLocale()
+    if (!locales && (debug || isDev)) {
+        console.error(`
+Missing required props in AutoTranslateProvider: locales & defaultLocale
+        
+-- You must export 'getTranslationProps' to use AutoTranslate on this Page --
 
-    console.log("[AutoTranslate] Current Locale: ", locale)
+Example:
 
-    const t = useTranslations('Index');
+import { getTranslationProps } from 'next-auto-translate/server'
 
-    console.log(t('title'))
+export async function getStaticProps(context) {
+    return {
+        props: {
+            ...await getTranslationProps(context)
+        }
+    };
+}
+`)
+    }
 
+    if (debug) {
+        console.log("[AutoTranslate] Default Locale: ", defaultLocale)
+        console.log("[AutoTranslate] Current Locale: ", locale)
+    }
 
-    return null
+    let usePathname = pathname
+    if (!pathname) {
+        usePathname = window.location.pathname
+    }
 
     // Get namespace from pathname, which is the first part of the pathname
-    let namespace = router.pathname.split("/")[1]
+    let startPath = usePathname.replace("/" + locale, "").split("/")[1]
 
-    if (namespace.length == 0) {
-        namespace = "index"
+    if (startPath.length == 0) {
+        startPath = "index"
+    }
+
+    if (!namespace) {
+        namespace = startPath
     }
 
     // Determine Key Prefix based on the rest of the pathname
-    const keyPrefix = router.pathname.split("/").slice(2).join(".")
+    // const keyPrefix = pathname.split("/").slice(2).join(".")
 
-    console.log("[AutoTranslate] Namespace: ", namespace)
+    if (debug) {
+        console.log("[AutoTranslate] Namespace: ", namespace)
+    }
 
-    // const { t } = useTranslation(namespace)
+    const t = useTranslations(namespace)
 
+
+    /*
+    
     // Only automatically run translations in dev mode
     if (isDev) {
         const checkTranslations = () => {
@@ -88,7 +114,7 @@ export const AutoTranslate = ({ tKey, children }) => {
                 console.log("[AutoTranslate] Translations Complete! 😎")
 
                 if (locale != defaultLocale) {
-                    // router.reload()
+                    // window.location.reload()
                 } else {
                     setTranslated(true)
                     setLoading(false)
@@ -113,10 +139,12 @@ export const AutoTranslate = ({ tKey, children }) => {
             }
         }, [])
     }
+    */
+
 
     return (
         <>
-            {(loading || translated) ? children : t(keyPrefix + tKey, children)}
+            {(loading || translated) ? children : t(tKey, children)}
             {loading && loadingElement}
         </>
     )

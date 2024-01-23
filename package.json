@@ -2,15 +2,15 @@
   "name": "next-auto-translate",
   "type": "module",
   "exports": {
-    ".": "./dist/index.js",
-    "./server": "./dist/server.js"
+    ".": "./esm/index.js",
+    "./server": "./esm/server.js"
   },
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
-    "link": "npm link && npm link ../Ink-Wizard/node_modules/next-intl ../Ink-Wizard/node_modules/use-intl ../Ink-Wizard/node_modules/react"
+    "link": "npm link && npm link ../Ink-Wizard/node_modules/next-intl ../Ink-Wizard/node_modules/use-intl ../Ink-Wizard/node_modules/use-intl ../Ink-Wizard/node_modules/react"
   },
-  "version": "1.0.42",
+  "version": "1.0.45",
   "description": "Automagical translation for NextJS",
   "private": false,
   "keywords": [],
