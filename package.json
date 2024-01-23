@@ -10,7 +10,7 @@
     "dev": "rollup -c -w",
     "link": "npm link && npm link ../Ink-Wizard/node_modules/next-intl ../Ink-Wizard/node_modules/use-intl ../Ink-Wizard/node_modules/use-intl ../Ink-Wizard/node_modules/react"
   },
-  "version": "1.0.45",
+  "version": "1.0.47",
   "description": "Automagical translation for NextJS",
   "private": false,
   "keywords": [],

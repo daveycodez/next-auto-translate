@@ -329,6 +329,20 @@ function _regeneratorRuntime() {
     }
   }, e;
 }
+function _toPrimitive(t, r) {
+  if ("object" != typeof t || !t) return t;
+  var e = t[Symbol.toPrimitive];
+  if (void 0 !== e) {
+    var i = e.call(t, r || "default");
+    if ("object" != typeof i) return i;
+    throw new TypeError("@@toPrimitive must return a primitive value.");
+  }
+  return ("string" === r ? String : Number)(t);
+}
+function _toPropertyKey(t) {
+  var i = _toPrimitive(t, "string");
+  return "symbol" == typeof i ? i : String(i);
+}
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
   try {
     var info = gen[key](arg);
@@ -358,6 +372,20 @@ function _asyncToGenerator(fn) {
       _next(undefined);
     });
   };
+}
+function _defineProperty(obj, key, value) {
+  key = _toPropertyKey(key);
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+  return obj;
 }
 function _slicedToArray(arr, i) {
   return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest();
@@ -395,6 +423,7 @@ function _nonIterableRest() {
 }
 
 var AutoTranslateContext = /*#__PURE__*/createContext();
+var isDev$1 = process.env.NODE_ENV === 'development';
 var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
   var children = _ref.children,
     pathname = _ref.pathname,
@@ -418,6 +447,7 @@ var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
     if (translationQueue.find(function (t) {
       return t.tKey === translationTask.tKey;
     })) return;
+    if (debug && isDev$1) console.log("[AutoTranslate] Adding to queue:", translationTask.tKey);
     setTranslationQueue(function (prevQueue) {
       return [].concat(_toConsumableArray(prevQueue), [translationTask]);
     });
@@ -434,37 +464,38 @@ var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
             }
             return _context.abrupt("return");
           case 2:
+            console.log("[AutoTranslate] Start translation for: ", translationQueue[0].tKey);
             setIsProcessing(true);
             currentTask = translationQueue[0];
-            _context.prev = 4;
-            _context.next = 7;
+            _context.prev = 5;
+            _context.next = 8;
             return runTranslations(currentTask);
-          case 7:
+          case 8:
             setTranslationQueue(function (prevQueue) {
               return prevQueue.slice(1);
             });
-            _context.next = 13;
+            _context.next = 14;
             break;
-          case 10:
-            _context.prev = 10;
-            _context.t0 = _context["catch"](4);
+          case 11:
+            _context.prev = 11;
+            _context.t0 = _context["catch"](5);
             console.error('Translation Error:', _context.t0);
-          case 13:
-            _context.prev = 13;
+          case 14:
+            _context.prev = 14;
             setIsProcessing(false);
-            return _context.finish(13);
-          case 16:
+            return _context.finish(14);
+          case 17:
           case "end":
             return _context.stop();
         }
-      }, _callee, null, [[4, 10, 13, 16]]);
+      }, _callee, null, [[5, 11, 14, 17]]);
     }));
     return function processQueue() {
       return _ref2.apply(this, arguments);
     };
   }();
   useEffect(function () {
-    if (debug) {
+    if (debug && isDev$1) {
       console.log("[AutoTranslate] GPT Model: ", gptModel);
       console.log("[AutoTranslate] Default Locale: ", defaultLocale);
       console.log("[AutoTranslate] Current Locale: ", locale);
@@ -490,7 +521,8 @@ var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
                 message: message,
                 locales: locales,
                 defaultLocale: defaultLocale,
-                gptModel: gptModel
+                gptModel: gptModel,
+                debug: debug
               })
             });
           case 3:
@@ -518,13 +550,13 @@ var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
     };
   }();
   return /*#__PURE__*/React.createElement(AutoTranslateContext.Provider, {
-    value: {
+    value: _defineProperty({
       pathname: pathname,
       defaultLocale: defaultLocale,
       debug: debug,
       locales: locales,
       addToQueue: addToQueue
-    }
+    }, "debug", debug)
   }, children, isProcessing && translatingElement);
 };
 var translatingElement = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, "\n                @keyframes ellipsis {\n                    0% { content: ''; }\n                    25% { content: '.'; }\n                    50% { content: '..'; }\n                    75% { content: '...'; }\n                    100% { content: '...'; }\n                }\n\n                .ellipsis::after {\n                    content: '';\n                    animation: ellipsis 2.0s infinite;\n                }\n            "), /*#__PURE__*/React.createElement("span", {
@@ -562,14 +594,10 @@ var AutoTranslate = function AutoTranslate(_ref) {
     _useState2 = _slicedToArray(_useState, 2),
     initialized = _useState2[0],
     setInitialized = _useState2[1];
-  var _useState3 = useState(isDev),
-    _useState4 = _slicedToArray(_useState3, 2);
-    _useState4[0];
-    var setLoading = _useState4[1];
   var messages = useMessages();
 
   // If no locales provided, throw getTranslationProps error
-  if (!locales && (debug || isDev) && typeof window !== 'undefined') {
+  if (!locales && debug && isDev && typeof window !== 'undefined') {
     console.error("[AutoTranslate]\nMissing required props in AutoTranslateProvider: locales & defaultLocale\n        \n-- You must export 'getTranslationProps' to use AutoTranslate on this Page --\n\nExample:\n\nimport { getTranslationProps } from 'next-auto-translate/server'\n\nexport async function getStaticProps(context) {\n    return {\n        props: {\n            ...await getTranslationProps(context)\n        }\n    };\n}\n");
   }
   var usePathname = pathname;
@@ -595,10 +623,9 @@ var AutoTranslate = function AutoTranslate(_ref) {
   // Only automatically run translations in dev mode
   if (isDev) {
     var checkTranslations = function checkTranslations() {
-      if (debug) {
+      if (isDev && debug) {
         console.log("[AutoTranslate] Namespace: ", namespace);
       }
-      setLoading(true);
       fetch("/api/translate/check", {
         method: 'POST',
         headers: {
@@ -609,7 +636,8 @@ var AutoTranslate = function AutoTranslate(_ref) {
           tKey: tKey,
           message: children,
           locales: locales,
-          defaultLocale: defaultLocale
+          defaultLocale: defaultLocale,
+          debug: debug
         })
       }).then(function (response) {
         return response.json();
@@ -620,22 +648,18 @@ var AutoTranslate = function AutoTranslate(_ref) {
             tKey: tKey,
             message: children
           });
-          setLoading(false);
         } else {
-          if (isDev || debug) {
+          if (isDev && debug) {
             console.log("[AutoTranslate] ".concat(namespace, ".").concat(tKey, " Translations already exist! \uD83D\uDE0E"));
           }
-          setLoading(false);
         }
         setInitialized(true);
       })["catch"](function (err) {
         console.error(err);
-        setLoading(false);
       });
     };
     useEffect(function () {
       if (initialized) {
-        setLoading(true);
         checkTranslations();
       }
     }, [children, messages, locales]);

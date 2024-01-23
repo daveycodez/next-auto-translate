@@ -2,6 +2,8 @@ import React, { createContext, useState, useEffect } from 'react';
 
 export const AutoTranslateContext = createContext();
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en", gptModel = 'gpt-3.5-turbo', locales, locale, debug }) => {
     const [translationQueue, setTranslationQueue] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -10,11 +12,15 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
         // See if this is already in queue
         if (translationQueue.find((t) => t.tKey === translationTask.tKey)) return;
 
+        if (debug && isDev) console.log("[AutoTranslate] Adding to queue:", translationTask.tKey)
+
         setTranslationQueue((prevQueue) => [...prevQueue, translationTask]);
     };
 
     const processQueue = async () => {
         if (isProcessing || translationQueue.length === 0) return;
+
+        console.log("[AutoTranslate] Start translation for: ", translationQueue[0].tKey)
 
         setIsProcessing(true);
         const currentTask = translationQueue[0];
@@ -30,7 +36,7 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
     };
 
     useEffect(() => {
-        if (debug) {
+        if (debug && isDev) {
             console.log("[AutoTranslate] GPT Model: ", gptModel)
             console.log("[AutoTranslate] Default Locale: ", defaultLocale)
             console.log("[AutoTranslate] Current Locale: ", locale)
@@ -53,7 +59,8 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
                 message,
                 locales,
                 defaultLocale,
-                gptModel
+                gptModel,
+                debug
             })
         });
 
@@ -66,7 +73,7 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
     };
 
     return (
-        <AutoTranslateContext.Provider value={{ pathname, defaultLocale, debug, locales, addToQueue }}>
+        <AutoTranslateContext.Provider value={{ pathname, defaultLocale, debug, locales, addToQueue, debug }}>
             {children}
             {isProcessing && translatingElement}
         </AutoTranslateContext.Provider>

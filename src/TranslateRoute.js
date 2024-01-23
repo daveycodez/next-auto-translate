@@ -27,12 +27,13 @@ export const TranslateRoute = async (req, res) => {
 
     try {
         if (req.query.action == "check") {
-            const runTranslate = await needsTranslations(namespace, tKey, message, locales, defaultLocale)
+            const runTranslate = await needsTranslations(namespace, tKey, message, locales, defaultLocale, debug)
+
 
             res.json({ run_translate: runTranslate })
         } else if (req.query.action == "run") {
             await runTranslations(namespace, tKey, message, locales, defaultLocale, gptModel)
-
+            await runAllTranslations(locales, defaultLocale, gptModel)
             res.json({ success: true })
         } else {
             res.status(400).json({ error: "Invalid action" })
@@ -43,14 +44,16 @@ export const TranslateRoute = async (req, res) => {
 }
 
 
-async function needsTranslations(namespace, tKey, message, locales, defaultLocale) {
+async function needsTranslations(namespace, tKey, message, locales, defaultLocale, debug) {
     const defaultLocaleTranslations = await loadTranslations(defaultLocale);
 
-    console.log("[TranslateRoute] Checking translations for:", namespace, tKey, message, locales, defaultLocale)
+    if (isDev && debug) {
+        console.log("[TranslateRoute] Checking translations for:", namespace, tKey, message, locales, defaultLocale)
+    }
 
     // Check if namespace exists
     if (!defaultLocaleTranslations[namespace]) {
-        if (isDev) {
+        if (isDev && debug) {
             console.log(`[TranslateRoute] Namespace not found for ${defaultLocale}:`, namespace)
         }
 
@@ -60,7 +63,9 @@ async function needsTranslations(namespace, tKey, message, locales, defaultLocal
     // Check if default message is changed or not found
     const defaultMessage = defaultLocaleTranslations[namespace][tKey];
     if (!defaultMessage || defaultMessage != message) {
-        console.log(`[TranslateRoute] Message not found for ${defaultLocale}, Namespace: ${namespace}, Key: ${tKey}`)
+        if (isDev && debug) {
+            console.log(`[TranslateRoute] Message not found for ${defaultLocale}, Namespace: ${namespace}, Key: ${tKey}`)
+        }
         return true;
     }
 
@@ -69,7 +74,10 @@ async function needsTranslations(namespace, tKey, message, locales, defaultLocal
         if (locale != defaultLocale) {
             const translations = await loadTranslations(locale);
             if (!translations[namespace] || !translations[namespace][tKey]) {
-                console.log(`[TranslateRoute] Translation not found for ${locale}, Namespace: ${namespace}, Key: ${tKey}`)
+                if (isDev && debug) {
+                    console.log(`[TranslateRoute] Translation not found for ${locale}, Namespace: ${namespace}, Key: ${tKey}`)
+                }
+
                 return true;
             }
         }
@@ -93,7 +101,7 @@ async function runAllTranslations(locales, defaultLocale, gptModel) {
     }
 }
 
-async function runTranslations(namespace, tKey, message, locales, defaultLocale, gptModel) {
+async function runTranslations(namespace, tKey, message, locales, defaultLocale, gptModel, debug) {
     const defaultTranslations = await loadTranslations(defaultLocale);
 
     let messageChanged = false
@@ -106,7 +114,7 @@ async function runTranslations(namespace, tKey, message, locales, defaultLocale,
         const translations = await loadTranslations(locale);
 
         if (!translations[namespace]) {
-            if (isDev) {
+            if (isDev && debug) {
                 console.log(`[TranslateRoute] Creating namespace ${namespace} for ${locale}:`)
             }
 
@@ -114,13 +122,13 @@ async function runTranslations(namespace, tKey, message, locales, defaultLocale,
         }
 
         if (locale == defaultLocale) {
-            if (isDev) {
+            if (isDev && debug) {
                 console.log(`[TranslateRoute] Setting default message for ${locale}: ${namespace}.${tKey}:`, message)
             }
 
             translations[namespace][tKey] = message;
         } else {
-            if (isDev) {
+            if (isDev && debug) {
                 console.log(`[TranslateRoute] Deleting translation for ${locale}: ${namespace}.${tKey}`)
             }
 
@@ -223,15 +231,11 @@ async function gptTranslate(message, model, fromLocale, toLocale) {
     const data = (await response.json())
 
     if (isDev) {
-        console.log("[TranslateRoute] GPT Response:", JSON.stringify(data))
+        console.log("[TranslateRoute] GPT Response:\n", JSON.stringify(data, null, 2))
     }
 
     // Extracting the translation from the response
     const translatedText = data.choices[0].message.content;
-
-    if (isDev) {
-        console.log("[TranslateRoute] Translated text:", translatedText)
-    }
 
     // Returning the translation in the desired JSON format
     return { "translation": translatedText };

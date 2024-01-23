@@ -9,11 +9,10 @@ export const AutoTranslate = ({ tKey, children, namespace }) => {
     const { pathname, defaultLocale, locales, debug, addToQueue } = useContext(AutoTranslateContext);
     const locale = useLocale()
     const [initialized, setInitialized] = useState(false)
-    const [loading, setLoading] = useState(isDev)
     const messages = useMessages()
 
     // If no locales provided, throw getTranslationProps error
-    if (!locales && (debug || isDev) && typeof window !== 'undefined') {
+    if (!locales && (debug && isDev) && typeof window !== 'undefined') {
         console.error(`[AutoTranslate]
 Missing required props in AutoTranslateProvider: locales & defaultLocale
         
@@ -56,11 +55,9 @@ export async function getStaticProps(context) {
     // Only automatically run translations in dev mode
     if (isDev) {
         const checkTranslations = () => {
-            if (debug) {
+            if (isDev && debug) {
                 console.log("[AutoTranslate] Namespace: ", namespace)
             }
-
-            setLoading(true)
 
             fetch(`/api/translate/check`, {
                 method: 'POST',
@@ -72,31 +69,25 @@ export async function getStaticProps(context) {
                     tKey,
                     message: children,
                     locales,
-                    defaultLocale
+                    defaultLocale, debug
                 })
             }).then(response => response.json()).then(data => {
                 if (data.run_translate) {
                     addToQueue({ namespace, tKey, message: children });
-
-                    setLoading(false);
                 } else {
-                    if (isDev || debug) {
+                    if (isDev && debug) {
                         console.log(`[AutoTranslate] ${namespace}.${tKey} Translations already exist! 😎`)
                     }
-
-                    setLoading(false)
                 }
 
                 setInitialized(true)
             }).catch(err => {
                 console.error(err);
-                setLoading(false)
             });
         };
 
         useEffect(() => {
             if (initialized) {
-                setLoading(true)
                 checkTranslations()
             }
         }, [children, messages, locales])
