@@ -427,7 +427,7 @@ var TranslateRoute = /*#__PURE__*/function () {
         case 7:
           _context.prev = 7;
           if (!(req.query.action == "check")) {
-            _context.next = 15;
+            _context.next = 16;
             break;
           }
           _context.next = 11;
@@ -437,42 +437,67 @@ var TranslateRoute = /*#__PURE__*/function () {
           res.json({
             run_translate: runTranslate
           });
-          _context.next = 24;
+
+          // In background, load /messages folder contents and delete all unused locale json files
+          // Asynchronously ->
+          // 1. List all files in /messages folder
+          // 2. Loop through all files, and check if the locale is in locales
+          // 3. If not, delete the file
+          fs.readdir(path.join(process.cwd(), messagesPath), function (err, files) {
+            if (err) return;
+            var _iterator = _createForOfIteratorHelper(files),
+              _step;
+            try {
+              for (_iterator.s(); !(_step = _iterator.n()).done;) {
+                var file = _step.value;
+                var locale = file.split(".")[0];
+                if (!locales.includes(locale)) {
+                  console.log("[TranslateRoute] Deleting unused locale file:", file);
+                  fs.unlink(path.join(process.cwd(), messagesPath, file), function (err) {});
+                }
+              }
+            } catch (err) {
+              _iterator.e(err);
+            } finally {
+              _iterator.f();
+            }
+          });
+          _context.next = 25;
           break;
-        case 15:
+        case 16:
           if (!(req.query.action == "run")) {
-            _context.next = 23;
+            _context.next = 24;
             break;
           }
-          _context.next = 18;
+          _context.next = 19;
           return runTranslations(namespace, tKey, message, locales, defaultLocale, gptModel);
-        case 18:
-          _context.next = 20;
+        case 19:
+          _context.next = 21;
           return runAllTranslations(locales, defaultLocale, gptModel);
-        case 20:
+        case 21:
           res.json({
             success: true
           });
-          _context.next = 24;
+          _context.next = 25;
           break;
-        case 23:
+        case 24:
           res.status(400).json({
             error: "Invalid action"
           });
-        case 24:
-          _context.next = 29;
+        case 25:
+          _context.next = 30;
           break;
-        case 26:
-          _context.prev = 26;
+        case 27:
+          _context.prev = 27;
           _context.t0 = _context["catch"](7);
           res.status(500).json({
             error: _context.t0
           });
-        case 29:
+        case 30:
         case "end":
           return _context.stop();
       }
-    }, _callee, null, [[7, 26]]);
+    }, _callee, null, [[7, 27]]);
   }));
   return function TranslateRoute(_x, _x2) {
     return _ref.apply(this, arguments);
@@ -483,7 +508,7 @@ function needsTranslations(_x3, _x4, _x5, _x6, _x7, _x8) {
 }
 function _needsTranslations() {
   _needsTranslations = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2(namespace, tKey, message, locales, defaultLocale, debug) {
-    var defaultLocaleTranslations, defaultMessage, _iterator, _step, locale, translations;
+    var defaultLocaleTranslations, defaultMessage, _iterator2, _step2, locale, translations;
     return _regeneratorRuntime().wrap(function _callee2$(_context2) {
       while (1) switch (_context2.prev = _context2.next) {
         case 0:
@@ -517,15 +542,15 @@ function _needsTranslations() {
           return _context2.abrupt("return", true);
         case 11:
           // Check if any locale is missing the translation
-          _iterator = _createForOfIteratorHelper(locales);
+          _iterator2 = _createForOfIteratorHelper(locales);
           _context2.prev = 12;
-          _iterator.s();
+          _iterator2.s();
         case 14:
-          if ((_step = _iterator.n()).done) {
+          if ((_step2 = _iterator2.n()).done) {
             _context2.next = 25;
             break;
           }
-          locale = _step.value;
+          locale = _step2.value;
           if (!(locale != defaultLocale)) {
             _context2.next = 23;
             break;
@@ -551,10 +576,10 @@ function _needsTranslations() {
         case 27:
           _context2.prev = 27;
           _context2.t0 = _context2["catch"](12);
-          _iterator.e(_context2.t0);
+          _iterator2.e(_context2.t0);
         case 30:
           _context2.prev = 30;
-          _iterator.f();
+          _iterator2.f();
           return _context2.finish(30);
         case 33:
           return _context2.abrupt("return", false);
@@ -615,7 +640,7 @@ function runTranslations(_x12, _x13, _x14, _x15, _x16, _x17, _x18) {
 }
 function _runTranslations() {
   _runTranslations = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(namespace, tKey, message, locales, defaultLocale, gptModel, debug) {
-    var defaultTranslations, messageChanged, _iterator2, _step2, locale, translations, _iterator3, _step3, _locale, _translations, translation, newTranslations;
+    var defaultTranslations, messageChanged, _iterator3, _step3, locale, translations, _iterator4, _step4, _locale, _translations, translation, newTranslations;
     return _regeneratorRuntime().wrap(function _callee4$(_context4) {
       while (1) switch (_context4.prev = _context4.next) {
         case 0:
@@ -629,15 +654,15 @@ function _runTranslations() {
           }
 
           // Set the default message & delete the message from all other locales
-          _iterator2 = _createForOfIteratorHelper(locales);
+          _iterator3 = _createForOfIteratorHelper(locales);
           _context4.prev = 6;
-          _iterator2.s();
+          _iterator3.s();
         case 8:
-          if ((_step2 = _iterator2.n()).done) {
+          if ((_step3 = _iterator3.n()).done) {
             _context4.next = 19;
             break;
           }
-          locale = _step2.value;
+          locale = _step3.value;
           _context4.next = 12;
           return loadTranslations(locale);
         case 12:
@@ -672,22 +697,22 @@ function _runTranslations() {
         case 21:
           _context4.prev = 21;
           _context4.t0 = _context4["catch"](6);
-          _iterator2.e(_context4.t0);
+          _iterator3.e(_context4.t0);
         case 24:
           _context4.prev = 24;
-          _iterator2.f();
+          _iterator3.f();
           return _context4.finish(24);
         case 27:
           // Translate the message to all other locales
-          _iterator3 = _createForOfIteratorHelper(locales);
+          _iterator4 = _createForOfIteratorHelper(locales);
           _context4.prev = 28;
-          _iterator3.s();
+          _iterator4.s();
         case 30:
-          if ((_step3 = _iterator3.n()).done) {
+          if ((_step4 = _iterator4.n()).done) {
             _context4.next = 51;
             break;
           }
-          _locale = _step3.value;
+          _locale = _step4.value;
           if (!(_locale == defaultLocale)) {
             _context4.next = 34;
             break;
@@ -727,10 +752,10 @@ function _runTranslations() {
         case 53:
           _context4.prev = 53;
           _context4.t1 = _context4["catch"](28);
-          _iterator3.e(_context4.t1);
+          _iterator4.e(_context4.t1);
         case 56:
           _context4.prev = 56;
-          _iterator3.f();
+          _iterator4.f();
           return _context4.finish(56);
         case 59:
         case "end":

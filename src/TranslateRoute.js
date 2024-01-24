@@ -25,6 +25,25 @@ export const TranslateRoute = async (req, res) => {
 
 
             res.json({ run_translate: runTranslate })
+
+            // In background, load /messages folder contents and delete all unused locale json files
+            // Asynchronously ->
+            // 1. List all files in /messages folder
+            // 2. Loop through all files, and check if the locale is in locales
+            // 3. If not, delete the file
+
+            const files = fs.readdir(path.join(process.cwd(), messagesPath), (err, files) => {
+                if (err) return;
+
+                for (const file of files) {
+                    const locale = file.split(".")[0]
+                    if (!locales.includes(locale)) {
+                        console.log("[TranslateRoute] Deleting unused locale file:", file)
+                        fs.unlink(path.join(process.cwd(), messagesPath, file), (err) => { });
+                    }
+                }
+            })
+
         } else if (req.query.action == "run") {
             await runTranslations(namespace, tKey, message, locales, defaultLocale, gptModel)
             await runAllTranslations(locales, defaultLocale, gptModel)
