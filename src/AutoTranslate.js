@@ -1,10 +1,10 @@
-import React, { useContext, useEffect, useState, useCallback } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { AutoTranslateContext } from './AutoTranslateProvider';
 
 const isDev = process.env.NODE_ENV === 'development';
 
 export const useAutoTranslate = ({ tKey, children, namespace } = null) => {
-    const { pathname, defaultLocale, locales, debug, addToCheckQueue, messages, locale } = useContext(AutoTranslateContext);
+    const { pathname, defaultLocale, locales, debug, addToCheckQueue, messages, locale, disabled } = useContext(AutoTranslateContext);
 
     // If no locales provided, throw getTranslationProps error
     if (!locales && (debug && isDev) && typeof window !== 'undefined') {
@@ -29,8 +29,10 @@ export async function getStaticProps(context) {
 
 
     // Utilizing a closure to hold our cache
-    if (!globalThis.cache) {
-        globalThis.cache = new Set();
+    if (isDev && !disabled) {
+        if (!globalThis.cache) {
+            globalThis.cache = new Set();
+        }
     }
 
     const autoTranslate = (tKey, message, namespace = '') => {
@@ -46,8 +48,8 @@ export async function getStaticProps(context) {
         const cacheKey = `${effectiveNamespace}:${tKey}`;
 
         // Check whether the translation has been queued before
-        if (!globalThis.cache.has(cacheKey)) {
-            if (process.env.NODE_ENV === 'development') {
+        if (isDev && !disabled) {
+            if (!globalThis.cache.has(cacheKey)) {
                 setTimeout(() => {
                     addToCheckQueue({ tKey, message, namespace: effectiveNamespace });
                 })

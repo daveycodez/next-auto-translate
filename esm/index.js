@@ -719,7 +719,8 @@ var useAutoTranslate = function useAutoTranslate() {
     debug = _useContext.debug,
     addToCheckQueue = _useContext.addToCheckQueue,
     messages = _useContext.messages,
-    locale = _useContext.locale;
+    locale = _useContext.locale,
+    disabled = _useContext.disabled;
 
   // If no locales provided, throw getTranslationProps error
   if (!locales && debug && isDev && typeof window !== 'undefined') {
@@ -727,8 +728,10 @@ var useAutoTranslate = function useAutoTranslate() {
   }
 
   // Utilizing a closure to hold our cache
-  if (!globalThis.cache) {
-    globalThis.cache = new Set();
+  if (isDev && !disabled) {
+    if (!globalThis.cache) {
+      globalThis.cache = new Set();
+    }
   }
   var autoTranslate = function autoTranslate(tKey, message) {
     var _messages$effectiveNa;
@@ -745,8 +748,8 @@ var useAutoTranslate = function useAutoTranslate() {
     var cacheKey = "".concat(effectiveNamespace, ":").concat(tKey);
 
     // Check whether the translation has been queued before
-    if (!globalThis.cache.has(cacheKey)) {
-      if (process.env.NODE_ENV === 'development') {
+    if (isDev && !disabled) {
+      if (!globalThis.cache.has(cacheKey)) {
         setTimeout(function () {
           addToCheckQueue({
             tKey: tKey,
