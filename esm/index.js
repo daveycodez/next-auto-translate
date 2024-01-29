@@ -457,7 +457,7 @@ var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
     // Set the new queue with the existing item removed and the new item added
     setTranslationQueue(function (prevQueue) {
       return [].concat(_toConsumableArray(prevQueue.filter(function (t) {
-        return t.tKey !== translationTask.tKey;
+        return t.tKey !== translationTask.tKey || t.namespace !== translationTask.namespace;
       })), [translationTask]);
     });
   };
@@ -467,7 +467,7 @@ var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
     // Set the new queue with the existing item removed and the new item added
     setCheckQueue(function (prevQueue) {
       return [].concat(_toConsumableArray(prevQueue.filter(function (t) {
-        return t.tKey !== checkTask.tKey;
+        return t.tKey !== checkTask.tKey || t.namespace !== checkTask.namespace;
       })), [checkTask]);
     });
   };
@@ -499,7 +499,7 @@ var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
           case 9:
             setTranslationQueue(function (prevQueue) {
               return prevQueue.filter(function (t) {
-                return t.tKey !== currentTask.tKey && t.message !== currentTask.message;
+                return t.tKey !== currentTask.tKey || t.message !== currentTask.message;
               });
             });
             _context.next = 15;
@@ -542,7 +542,7 @@ var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
           case 7:
             setCheckQueue(function (prevQueue) {
               return prevQueue.filter(function (t) {
-                return t.tKey !== currentTask.tKey && t.message !== currentTask.message;
+                return t.tKey !== currentTask.tKey || t.message !== currentTask.message;
               });
             });
             _context2.next = 13;

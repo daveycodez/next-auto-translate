@@ -14,14 +14,14 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
         if (debug && isDev) console.log("[AutoTranslate] Adding to Translation queue:", translationTask.tKey);
 
         // Set the new queue with the existing item removed and the new item added
-        setTranslationQueue(prevQueue => [...prevQueue.filter((t) => t.tKey !== translationTask.tKey), translationTask]);
+        setTranslationQueue(prevQueue => [...prevQueue.filter((t) => (t.tKey !== translationTask.tKey || t.namespace !== translationTask.namespace)), translationTask]);
     };
 
     const addToCheckQueue = (checkTask) => {
         if (debug && isDev) console.log("[AutoTranslate] Adding to Check queue:", checkTask.tKey);
 
         // Set the new queue with the existing item removed and the new item added
-        setCheckQueue(prevQueue => [...prevQueue.filter((t) => t.tKey !== checkTask.tKey), checkTask]);
+        setCheckQueue(prevQueue => [...prevQueue.filter((t) => (t.tKey !== checkTask.tKey || t.namespace !== checkTask.namespace)), checkTask]);
     };
 
     const processQueue = async () => {
@@ -44,7 +44,7 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
         try {
             await runTranslations(currentTask);
 
-            setTranslationQueue(prevQueue => prevQueue.filter((t) => t.tKey !== currentTask.tKey && t.message !== currentTask.message));
+            setTranslationQueue(prevQueue => prevQueue.filter((t) => t.tKey !== currentTask.tKey || t.message !== currentTask.message));
         } catch (error) {
             console.error('Translation Error:', error);
         } finally {
@@ -62,7 +62,9 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
         try {
             await checkTranslations(currentTask);
 
-            setCheckQueue(prevQueue => prevQueue.filter((t) => t.tKey !== currentTask.tKey && t.message !== currentTask.message));
+            setCheckQueue(prevQueue => {
+                return prevQueue.filter((t) => t.tKey !== currentTask.tKey || t.message !== currentTask.message)
+            });
         } catch (error) {
             console.error('Checking Error:', error);
         } finally {
