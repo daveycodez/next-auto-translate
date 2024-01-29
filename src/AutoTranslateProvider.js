@@ -4,14 +4,13 @@ export const AutoTranslateContext = createContext();
 
 const isDev = process.env.NODE_ENV === 'development';
 
-export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en", gptModel = 'gpt-3.5-turbo', locales, locale, debug, messages, disabled }) => {
+export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en", gptModel = "gpt-3.5-turbo", locales, locale, debug, messages, disabled }) => {
     const [checkQueue, setCheckQueue] = useState([]);
     const [translationQueue, setTranslationQueue] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isChecking, setIsChecking] = useState(false);
 
     const addToTranslationQueue = (translationTask) => {
-        // Remove existing item with the same tKey from the queue
         if (debug && isDev) console.log("[AutoTranslate] Adding to Translation queue:", translationTask.tKey);
 
         // Set the new queue with the existing item removed and the new item added
@@ -19,7 +18,6 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
     };
 
     const addToCheckQueue = (checkTask) => {
-        // Remove existing item with the same tKey from the queue
         if (debug && isDev) console.log("[AutoTranslate] Adding to Check queue:", checkTask.tKey);
 
         // Set the new queue with the existing item removed and the new item added
@@ -35,16 +33,18 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
             console.log("[AutoTranslate] Current Locale: ", locale)
         }
 
-        console.log("[AutoTranslate] Start translation for: ", translationQueue[0].tKey)
+        if (isDev) {
+            console.log("[AutoTranslate] Start translation for: ", translationQueue[0].tKey)
+        }
 
         setIsProcessing(true);
+
         const currentTask = translationQueue[0];
 
         try {
             await runTranslations(currentTask);
-            const filteredQueue = translationQueue.filter((t) => t.tKey !== currentTask.tKey && t.message !== currentTask.message);
 
-            setTranslationQueue(filteredQueue);
+            setTranslationQueue(prevQueue => prevQueue.filter((t) => t.tKey !== currentTask.tKey && t.message !== currentTask.message));
         } catch (error) {
             console.error('Translation Error:', error);
         } finally {
@@ -56,13 +56,13 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
         if (isChecking || checkQueue.length === 0) return;
 
         setIsChecking(true);
+
         const currentTask = checkQueue[0];
 
         try {
             await checkTranslations(currentTask);
-            const filteredQueue = checkQueue.filter((t) => t.tKey !== currentTask.tKey && t.message !== currentTask.message);
 
-            setCheckQueue(filteredQueue);
+            setCheckQueue(prevQueue => prevQueue.filter((t) => t.tKey !== currentTask.tKey && t.message !== currentTask.message));
         } catch (error) {
             console.error('Checking Error:', error);
         } finally {
@@ -79,10 +79,10 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
         processCheckQueue();
     }, [checkQueue, isChecking]);
 
+
     const runTranslations = async ({ namespace, tKey, message }) => {
-        // Perform the translation using the provided namespace, tKey, and message.
-        // Fetch the translation from the API and handle the response.
-        const response = await fetch(`/api/translate/run`, {
+        // Post the translation task to the server
+        const response = await fetch(`/api/translate/runTranslations`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -165,22 +165,25 @@ const translatingElement = (
                     content: '';
                     animation: ellipsis 2.0s infinite;
                 }
+
+                .auto-translate-toast {
+                    position: fixed;
+                    bottom: 10%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 160px;
+                    background: slategray;
+                    color: white;
+                    text-align: center;
+                    border-radius: 10px;
+                    padding: 10px 0;
+                    z-index: 1000;
+                    font-size: 14px;
+                    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+                }
             `}
         </style>
-        <span style={{
-            position: 'fixed',
-            bottom: '10%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '160px',
-            background: 'rgba(255, 255, 255, 0.75)',
-            color: 'white',
-            textAlign: 'center',
-            borderRadius: '10px',
-            padding: '10px 0',
-            zIndex: 1000,
-            fontSize: '14px',
-        }}>
+        <span className="auto-translate-toast">
             <span className="ellipsis"><i>Translating</i></span>
         </span>
     </>

@@ -465,7 +465,7 @@ var TranslateRoute = /*#__PURE__*/function () {
           _context.next = 25;
           break;
         case 16:
-          if (!(req.query.action == "run")) {
+          if (!(req.query.action == "runTranslations")) {
             _context.next = 24;
             break;
           }

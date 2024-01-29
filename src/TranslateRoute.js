@@ -44,7 +44,7 @@ export const TranslateRoute = async (req, res) => {
                 }
             })
 
-        } else if (req.query.action == "run") {
+        } else if (req.query.action == "runTranslations") {
             await runTranslations(namespace, tKey, message, locales, defaultLocale, gptModel)
             await runAllTranslations(locales, defaultLocale, gptModel)
             res.json({ success: true })
