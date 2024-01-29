@@ -4,21 +4,36 @@ export const AutoTranslateContext = createContext();
 
 const isDev = process.env.NODE_ENV === 'development';
 
-export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en", gptModel = 'gpt-3.5-turbo', locales, locale, debug, messages }) => {
+export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en", gptModel = 'gpt-3.5-turbo', locales, locale, debug, messages, disabled }) => {
+    const [checkQueue, setCheckQueue] = useState([]);
     const [translationQueue, setTranslationQueue] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isChecking, setIsChecking] = useState(false);
 
-    const addToQueue = (translationTask) => {
-        // See if this is already in queue
-        if (translationQueue.find((t) => t.tKey === translationTask.tKey)) return;
+    const addToTranslationQueue = (translationTask) => {
+        // Remove existing item with the same tKey from the queue
+        if (debug && isDev) console.log("[AutoTranslate] Adding to Translation queue:", translationTask.tKey);
 
-        if (debug && isDev) console.log("[AutoTranslate] Adding to queue:", translationTask.tKey)
+        // Set the new queue with the existing item removed and the new item added
+        setTranslationQueue(prevQueue => [...prevQueue.filter((t) => t.tKey !== translationTask.tKey), translationTask]);
+    };
 
-        setTranslationQueue((prevQueue) => [...prevQueue, translationTask]);
+    const addToCheckQueue = (checkTask) => {
+        // Remove existing item with the same tKey from the queue
+        if (debug && isDev) console.log("[AutoTranslate] Adding to Check queue:", checkTask.tKey);
+
+        // Set the new queue with the existing item removed and the new item added
+        setCheckQueue(prevQueue => [...prevQueue.filter((t) => t.tKey !== checkTask.tKey), checkTask]);
     };
 
     const processQueue = async () => {
         if (isProcessing || translationQueue.length === 0) return;
+
+        if (debug && isDev) {
+            console.log("[AutoTranslate] GPT Model: ", gptModel)
+            console.log("[AutoTranslate] Default Locale: ", defaultLocale)
+            console.log("[AutoTranslate] Current Locale: ", locale)
+        }
 
         console.log("[AutoTranslate] Start translation for: ", translationQueue[0].tKey)
 
@@ -27,7 +42,9 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
 
         try {
             await runTranslations(currentTask);
-            setTranslationQueue((prevQueue) => prevQueue.slice(1));
+            const filteredQueue = translationQueue.filter((t) => t.tKey !== currentTask.tKey && t.message !== currentTask.message);
+
+            setTranslationQueue(filteredQueue);
         } catch (error) {
             console.error('Translation Error:', error);
         } finally {
@@ -35,15 +52,32 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
         }
     };
 
-    useEffect(() => {
-        if (debug && isDev) {
-            console.log("[AutoTranslate] GPT Model: ", gptModel)
-            console.log("[AutoTranslate] Default Locale: ", defaultLocale)
-            console.log("[AutoTranslate] Current Locale: ", locale)
-        }
+    const processCheckQueue = async () => {
+        if (isChecking || checkQueue.length === 0) return;
 
+        setIsChecking(true);
+        const currentTask = checkQueue[0];
+
+        try {
+            await checkTranslations(currentTask);
+            const filteredQueue = checkQueue.filter((t) => t.tKey !== currentTask.tKey && t.message !== currentTask.message);
+
+            setCheckQueue(filteredQueue);
+        } catch (error) {
+            console.error('Checking Error:', error);
+        } finally {
+            setIsChecking(false);
+        }
+    };
+
+
+    useEffect(() => {
         processQueue();
     }, [translationQueue, isProcessing]);
+
+    useEffect(() => {
+        processCheckQueue();
+    }, [checkQueue, isChecking]);
 
     const runTranslations = async ({ namespace, tKey, message }) => {
         // Perform the translation using the provided namespace, tKey, and message.
@@ -72,8 +106,42 @@ export const AutoTranslateProvider = ({ children, pathname, defaultLocale = "en"
         }
     };
 
+
+    const checkTranslations = async ({ tKey, message, namespace }) => {
+        if (isDev && debug) {
+            console.log("[AutoTranslate] Namespace: ", namespace);
+        }
+
+        try {
+            const response = await fetch(`/api/translate/checkTranslation`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    namespace,
+                    tKey,
+                    message,
+                    locales,
+                    defaultLocale, debug
+                })
+            });
+            const data = await response.json();
+            if (data.run_translate) {
+                addToTranslationQueue({ namespace, tKey, message });
+            } else {
+                if (isDev && debug) {
+                    console.log(`[AutoTranslate] ${namespace}.${tKey} Translations already exist! 😎`);
+                }
+            }
+        } catch (err) {
+            console.log("[AutoTranslate] Error checking translations: ", err);
+            console.error(err);
+        }
+    };
+
     return (
-        <AutoTranslateContext.Provider value={{ pathname, defaultLocale, debug, locales, addToQueue, debug, messages }}>
+        <AutoTranslateContext.Provider value={{ pathname, defaultLocale, debug, locales, addToTranslationQueue, addToCheckQueue, debug, messages, disabled }}>
             {children}
             {isProcessing && translatingElement}
         </AutoTranslateContext.Provider>

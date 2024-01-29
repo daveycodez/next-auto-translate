@@ -1,12 +1,10 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { AutoTranslateContext } from './AutoTranslateProvider';
 
 const isDev = process.env.NODE_ENV === 'development';
 
-
-export const AutoTranslate = ({ tKey, children, namespace }) => {
-    const { pathname, defaultLocale, locales, debug, addToQueue, messages, locale } = useContext(AutoTranslateContext);
-    const [initialized, setInitialized] = useState(false)
+export const useAutoTranslate = ({ tKey, children, namespace } = null) => {
+    const { pathname, defaultLocale, locales, debug, addToCheckQueue, messages, locale } = useContext(AutoTranslateContext);
 
     // If no locales provided, throw getTranslationProps error
     if (!locales && (debug && isDev) && typeof window !== 'undefined') {
@@ -29,72 +27,67 @@ export async function getStaticProps(context) {
 `)
     }
 
-    let usePathname = pathname
 
-    // If no pathname provided, use window.location.pathname
-    if (!pathname && typeof window !== 'undefined') {
-        usePathname = window.location.pathname
+    // Utilizing a closure to hold our cache
+    if (!globalThis.cache) {
+        globalThis.cache = new Set();
     }
 
-    // Get namespace from pathname, which is the first part of the pathname
-    let startPath = usePathname.replace("/" + locale, "").split("/")[1]
+    const autoTranslate = (tKey, message, namespace = '') => {
+        // Computation or derivation of namespace if not directly provided
+        let effectiveNamespace = namespace;
+        if (!effectiveNamespace) {
+            let usePathname = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+            let startPath = usePathname.replace("/" + locale, "").split("/")[1];
+            effectiveNamespace = startPath.length === 0 ? "index" : startPath;
+        }
 
-    // If path is empty, use index
-    if (startPath.length == 0) {
-        startPath = "index"
+        // Construct a unique cache key
+        const cacheKey = `${effectiveNamespace}:${tKey}`;
+
+        // Check whether the translation has been queued before
+        if (!globalThis.cache.has(cacheKey)) {
+            if (process.env.NODE_ENV === 'development') {
+                setTimeout(() => {
+                    addToCheckQueue({ tKey, message, namespace: effectiveNamespace });
+                })
+
+                globalThis.cache.add(cacheKey);
+            }
+        }
+
+        // Return the appropriate translation if available
+        return messages[effectiveNamespace]?.[tKey] || message;
     }
 
-    // If no namespace provided, use the pathname
+    return { autoTranslate }
+}
+
+
+export const AutoTranslate = ({ tKey, children, namespace }) => {
+    const { pathname, messages, locale, locales, debug, disabled, addToCheckQueue } = useContext(AutoTranslateContext);
+    const [initialized, setInitialized] = useState(false)
+    const message = children
+
     if (!namespace) {
-        namespace = startPath
+        let usePathname = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+        let startPath = usePathname.replace("/" + locale, "").split("/")[1];
+        namespace = startPath.length === 0 ? "index" : startPath;
     }
 
     // Only automatically run translations in dev mode
-    if (isDev) {
-        const checkTranslations = () => {
-            if (isDev && debug) {
-                console.log("[AutoTranslate] Namespace: ", namespace)
-            }
+    useEffect(() => {
+        if (isDev && !disabled && initialized) {
+            addToCheckQueue({ tKey, message, namespace })
+        }
+    }, [children, locales])
 
-            fetch(`/api/translate/check`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    namespace,
-                    tKey,
-                    message: children,
-                    locales,
-                    defaultLocale, debug
-                })
-            }).then(response => response.json()).then(data => {
-                if (data.run_translate) {
-                    addToQueue({ namespace, tKey, message: children });
-                } else {
-                    if (isDev && debug) {
-                        console.log(`[AutoTranslate] ${namespace}.${tKey} Translations already exist! 😎`)
-                    }
-                }
-
-                setInitialized(true)
-            }).catch(err => {
-                console.error(err);
-            });
-        };
-
-        useEffect(() => {
-            if (initialized) {
-                checkTranslations()
-            }
-        }, [children, messages, locales])
-
-        useEffect(() => {
-            if (!initialized) {
-                checkTranslations()
-            }
-        }, [])
-    }
+    useEffect(() => {
+        if (isDev && !disabled && !initialized) {
+            addToCheckQueue({ tKey, message, namespace })
+            setInitialized(true)
+        }
+    }, [])
 
 
     if (!messages[namespace]) {

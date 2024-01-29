@@ -426,7 +426,7 @@ var TranslateRoute = /*#__PURE__*/function () {
           return _context.abrupt("return");
         case 7:
           _context.prev = 7;
-          if (!(req.query.action == "check")) {
+          if (!(req.query.action == "checkTranslation")) {
             _context.next = 16;
             break;
           }

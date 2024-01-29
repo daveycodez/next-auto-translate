@@ -433,28 +433,49 @@ var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
     locales = _ref.locales,
     locale = _ref.locale,
     debug = _ref.debug,
-    messages = _ref.messages;
+    messages = _ref.messages,
+    disabled = _ref.disabled;
   var _useState = useState([]),
     _useState2 = _slicedToArray(_useState, 2),
-    translationQueue = _useState2[0],
-    setTranslationQueue = _useState2[1];
-  var _useState3 = useState(false),
+    checkQueue = _useState2[0],
+    setCheckQueue = _useState2[1];
+  var _useState3 = useState([]),
     _useState4 = _slicedToArray(_useState3, 2),
-    isProcessing = _useState4[0],
-    setIsProcessing = _useState4[1];
-  var addToQueue = function addToQueue(translationTask) {
-    // See if this is already in queue
-    if (translationQueue.find(function (t) {
-      return t.tKey === translationTask.tKey;
-    })) return;
-    if (debug && isDev$1) console.log("[AutoTranslate] Adding to queue:", translationTask.tKey);
+    translationQueue = _useState4[0],
+    setTranslationQueue = _useState4[1];
+  var _useState5 = useState(false),
+    _useState6 = _slicedToArray(_useState5, 2),
+    isProcessing = _useState6[0],
+    setIsProcessing = _useState6[1];
+  var _useState7 = useState(false),
+    _useState8 = _slicedToArray(_useState7, 2),
+    isChecking = _useState8[0],
+    setIsChecking = _useState8[1];
+  var addToTranslationQueue = function addToTranslationQueue(translationTask) {
+    // Remove existing item with the same tKey from the queue
+    if (debug && isDev$1) console.log("[AutoTranslate] Adding to Translation queue:", translationTask.tKey);
+
+    // Set the new queue with the existing item removed and the new item added
     setTranslationQueue(function (prevQueue) {
-      return [].concat(_toConsumableArray(prevQueue), [translationTask]);
+      return [].concat(_toConsumableArray(prevQueue.filter(function (t) {
+        return t.tKey !== translationTask.tKey;
+      })), [translationTask]);
+    });
+  };
+  var addToCheckQueue = function addToCheckQueue(checkTask) {
+    // Remove existing item with the same tKey from the queue
+    if (debug && isDev$1) console.log("[AutoTranslate] Adding to Check queue:", checkTask.tKey);
+
+    // Set the new queue with the existing item removed and the new item added
+    setCheckQueue(function (prevQueue) {
+      return [].concat(_toConsumableArray(prevQueue.filter(function (t) {
+        return t.tKey !== checkTask.tKey;
+      })), [checkTask]);
     });
   };
   var processQueue = /*#__PURE__*/function () {
     var _ref2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
-      var currentTask;
+      var currentTask, filteredQueue;
       return _regeneratorRuntime().wrap(function _callee$(_context) {
         while (1) switch (_context.prev = _context.next) {
           case 0:
@@ -464,52 +485,98 @@ var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
             }
             return _context.abrupt("return");
           case 2:
+            if (debug && isDev$1) {
+              console.log("[AutoTranslate] GPT Model: ", gptModel);
+              console.log("[AutoTranslate] Default Locale: ", defaultLocale);
+              console.log("[AutoTranslate] Current Locale: ", locale);
+            }
             console.log("[AutoTranslate] Start translation for: ", translationQueue[0].tKey);
             setIsProcessing(true);
             currentTask = translationQueue[0];
-            _context.prev = 5;
-            _context.next = 8;
+            _context.prev = 6;
+            _context.next = 9;
             return runTranslations(currentTask);
-          case 8:
-            setTranslationQueue(function (prevQueue) {
-              return prevQueue.slice(1);
+          case 9:
+            filteredQueue = translationQueue.filter(function (t) {
+              return t.tKey !== currentTask.tKey && t.message !== currentTask.message;
             });
-            _context.next = 14;
+            setTranslationQueue(filteredQueue);
+            _context.next = 16;
             break;
-          case 11:
-            _context.prev = 11;
-            _context.t0 = _context["catch"](5);
+          case 13:
+            _context.prev = 13;
+            _context.t0 = _context["catch"](6);
             console.error('Translation Error:', _context.t0);
-          case 14:
-            _context.prev = 14;
+          case 16:
+            _context.prev = 16;
             setIsProcessing(false);
-            return _context.finish(14);
-          case 17:
+            return _context.finish(16);
+          case 19:
           case "end":
             return _context.stop();
         }
-      }, _callee, null, [[5, 11, 14, 17]]);
+      }, _callee, null, [[6, 13, 16, 19]]);
     }));
     return function processQueue() {
       return _ref2.apply(this, arguments);
     };
   }();
-  useEffect(function () {
-    if (debug && isDev$1) {
-      console.log("[AutoTranslate] GPT Model: ", gptModel);
-      console.log("[AutoTranslate] Default Locale: ", defaultLocale);
-      console.log("[AutoTranslate] Current Locale: ", locale);
-    }
-    processQueue();
-  }, [translationQueue, isProcessing]);
-  var runTranslations = /*#__PURE__*/function () {
-    var _ref4 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2(_ref3) {
-      var namespace, tKey, message, response, data;
+  var processCheckQueue = /*#__PURE__*/function () {
+    var _ref3 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2() {
+      var currentTask, filteredQueue;
       return _regeneratorRuntime().wrap(function _callee2$(_context2) {
         while (1) switch (_context2.prev = _context2.next) {
           case 0:
-            namespace = _ref3.namespace, tKey = _ref3.tKey, message = _ref3.message;
-            _context2.next = 3;
+            if (!(isChecking || checkQueue.length === 0)) {
+              _context2.next = 2;
+              break;
+            }
+            return _context2.abrupt("return");
+          case 2:
+            setIsChecking(true);
+            currentTask = checkQueue[0];
+            _context2.prev = 4;
+            _context2.next = 7;
+            return checkTranslations(currentTask);
+          case 7:
+            filteredQueue = checkQueue.filter(function (t) {
+              return t.tKey !== currentTask.tKey && t.message !== currentTask.message;
+            });
+            setCheckQueue(filteredQueue);
+            _context2.next = 14;
+            break;
+          case 11:
+            _context2.prev = 11;
+            _context2.t0 = _context2["catch"](4);
+            console.error('Checking Error:', _context2.t0);
+          case 14:
+            _context2.prev = 14;
+            setIsChecking(false);
+            return _context2.finish(14);
+          case 17:
+          case "end":
+            return _context2.stop();
+        }
+      }, _callee2, null, [[4, 11, 14, 17]]);
+    }));
+    return function processCheckQueue() {
+      return _ref3.apply(this, arguments);
+    };
+  }();
+  useEffect(function () {
+    processQueue();
+  }, [translationQueue, isProcessing]);
+  useEffect(function () {
+    processCheckQueue();
+  }, [checkQueue, isChecking]);
+  var runTranslations = /*#__PURE__*/function () {
+    var _ref5 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee3(_ref4) {
+      var namespace, tKey, message, response, data;
+      return _regeneratorRuntime().wrap(function _callee3$(_context3) {
+        while (1) switch (_context3.prev = _context3.next) {
+          case 0:
+            namespace = _ref4.namespace, tKey = _ref4.tKey, message = _ref4.message;
+            _context3.next = 3;
             return fetch("/api/translate/run", {
               method: 'POST',
               headers: {
@@ -526,37 +593,98 @@ var AutoTranslateProvider = function AutoTranslateProvider(_ref) {
               })
             });
           case 3:
-            response = _context2.sent;
-            _context2.next = 6;
+            response = _context3.sent;
+            _context3.next = 6;
             return response.json();
           case 6:
-            data = _context2.sent;
+            data = _context3.sent;
             if (!data.success) {
-              _context2.next = 10;
+              _context3.next = 10;
               break;
             }
-            _context2.next = 11;
+            _context3.next = 11;
             break;
           case 10:
             throw new Error(data.error || 'Translation failed');
           case 11:
           case "end":
-            return _context2.stop();
+            return _context3.stop();
         }
-      }, _callee2);
+      }, _callee3);
     }));
     return function runTranslations(_x) {
-      return _ref4.apply(this, arguments);
+      return _ref5.apply(this, arguments);
+    };
+  }();
+  var checkTranslations = /*#__PURE__*/function () {
+    var _ref7 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(_ref6) {
+      var tKey, message, namespace, response, data;
+      return _regeneratorRuntime().wrap(function _callee4$(_context4) {
+        while (1) switch (_context4.prev = _context4.next) {
+          case 0:
+            tKey = _ref6.tKey, message = _ref6.message, namespace = _ref6.namespace;
+            if (isDev$1 && debug) {
+              console.log("[AutoTranslate] Namespace: ", namespace);
+            }
+            _context4.prev = 2;
+            _context4.next = 5;
+            return fetch("/api/translate/checkTranslation", {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                namespace: namespace,
+                tKey: tKey,
+                message: message,
+                locales: locales,
+                defaultLocale: defaultLocale,
+                debug: debug
+              })
+            });
+          case 5:
+            response = _context4.sent;
+            _context4.next = 8;
+            return response.json();
+          case 8:
+            data = _context4.sent;
+            if (data.run_translate) {
+              addToTranslationQueue({
+                namespace: namespace,
+                tKey: tKey,
+                message: message
+              });
+            } else {
+              if (isDev$1 && debug) {
+                console.log("[AutoTranslate] ".concat(namespace, ".").concat(tKey, " Translations already exist! \uD83D\uDE0E"));
+              }
+            }
+            _context4.next = 16;
+            break;
+          case 12:
+            _context4.prev = 12;
+            _context4.t0 = _context4["catch"](2);
+            console.log("[AutoTranslate] Error checking translations: ", _context4.t0);
+            console.error(_context4.t0);
+          case 16:
+          case "end":
+            return _context4.stop();
+        }
+      }, _callee4, null, [[2, 12]]);
+    }));
+    return function checkTranslations(_x2) {
+      return _ref7.apply(this, arguments);
     };
   }();
   return /*#__PURE__*/React.createElement(AutoTranslateContext.Provider, {
-    value: _defineProperty(_defineProperty({
+    value: _defineProperty(_defineProperty(_defineProperty({
       pathname: pathname,
       defaultLocale: defaultLocale,
       debug: debug,
       locales: locales,
-      addToQueue: addToQueue
-    }, "debug", debug), "messages", messages)
+      addToTranslationQueue: addToTranslationQueue,
+      addToCheckQueue: addToCheckQueue
+    }, "debug", debug), "messages", messages), "disabled", disabled)
   }, children, isProcessing && translatingElement);
 };
 var translatingElement = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, "\n                @keyframes ellipsis {\n                    0% { content: ''; }\n                    25% { content: '.'; }\n                    50% { content: '..'; }\n                    75% { content: '...'; }\n                    100% { content: '...'; }\n                }\n\n                .ellipsis::after {\n                    content: '';\n                    animation: ellipsis 2.0s infinite;\n                }\n            "), /*#__PURE__*/React.createElement("span", {
@@ -579,100 +707,111 @@ var translatingElement = /*#__PURE__*/React.createElement(React.Fragment, null, 
 }, /*#__PURE__*/React.createElement("i", null, "Translating"))));
 
 var isDev = process.env.NODE_ENV === 'development';
-var AutoTranslate = function AutoTranslate(_ref) {
-  var tKey = _ref.tKey,
-    children = _ref.children,
-    namespace = _ref.namespace;
+var useAutoTranslate = function useAutoTranslate() {
+  var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+    _ref.tKey;
+    _ref.children;
+    _ref.namespace;
   var _useContext = useContext(AutoTranslateContext),
-    pathname = _useContext.pathname,
-    defaultLocale = _useContext.defaultLocale,
-    locales = _useContext.locales,
+    pathname = _useContext.pathname;
+    _useContext.defaultLocale;
+    var locales = _useContext.locales,
     debug = _useContext.debug,
-    addToQueue = _useContext.addToQueue,
+    addToCheckQueue = _useContext.addToCheckQueue,
     messages = _useContext.messages,
     locale = _useContext.locale;
-  var _useState = useState(false),
-    _useState2 = _slicedToArray(_useState, 2),
-    initialized = _useState2[0],
-    setInitialized = _useState2[1];
 
   // If no locales provided, throw getTranslationProps error
   if (!locales && debug && isDev && typeof window !== 'undefined') {
     console.error("[AutoTranslate]\nMissing required props in AutoTranslateProvider: locales & defaultLocale\n        \n-- You must export 'getTranslationProps' to use AutoTranslate on this Page --\n\nExample:\n\nimport { getTranslationProps } from 'next-auto-translate/server'\n\nexport async function getStaticProps(context) {\n    return {\n        props: {\n            ...await getTranslationProps(context)\n        }\n    };\n}\n");
   }
-  var usePathname = pathname;
 
-  // If no pathname provided, use window.location.pathname
-  if (!pathname && typeof window !== 'undefined') {
-    usePathname = window.location.pathname;
+  // Utilizing a closure to hold our cache
+  if (!globalThis.cache) {
+    globalThis.cache = new Set();
   }
+  var autoTranslate = function autoTranslate(tKey, message) {
+    var _messages$effectiveNa;
+    var namespace = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '';
+    // Computation or derivation of namespace if not directly provided
+    var effectiveNamespace = namespace;
+    if (!effectiveNamespace) {
+      var usePathname = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+      var startPath = usePathname.replace("/" + locale, "").split("/")[1];
+      effectiveNamespace = startPath.length === 0 ? "index" : startPath;
+    }
 
-  // Get namespace from pathname, which is the first part of the pathname
-  var startPath = usePathname.replace("/" + locale, "").split("/")[1];
+    // Construct a unique cache key
+    var cacheKey = "".concat(effectiveNamespace, ":").concat(tKey);
 
-  // If path is empty, use index
-  if (startPath.length == 0) {
-    startPath = "index";
-  }
+    // Check whether the translation has been queued before
+    if (!globalThis.cache.has(cacheKey)) {
+      if (process.env.NODE_ENV === 'development') {
+        setTimeout(function () {
+          addToCheckQueue({
+            tKey: tKey,
+            message: message,
+            namespace: effectiveNamespace
+          });
+        });
+        globalThis.cache.add(cacheKey);
+      }
+    }
 
-  // If no namespace provided, use the pathname
+    // Return the appropriate translation if available
+    return ((_messages$effectiveNa = messages[effectiveNamespace]) === null || _messages$effectiveNa === void 0 ? void 0 : _messages$effectiveNa[tKey]) || message;
+  };
+  return {
+    autoTranslate: autoTranslate
+  };
+};
+var AutoTranslate = function AutoTranslate(_ref2) {
+  var tKey = _ref2.tKey,
+    children = _ref2.children,
+    namespace = _ref2.namespace;
+  var _useContext2 = useContext(AutoTranslateContext),
+    pathname = _useContext2.pathname,
+    messages = _useContext2.messages,
+    locale = _useContext2.locale,
+    locales = _useContext2.locales;
+    _useContext2.debug;
+    var disabled = _useContext2.disabled,
+    addToCheckQueue = _useContext2.addToCheckQueue;
+  var _useState = useState(false),
+    _useState2 = _slicedToArray(_useState, 2),
+    initialized = _useState2[0],
+    setInitialized = _useState2[1];
+  var message = children;
   if (!namespace) {
-    namespace = startPath;
+    var usePathname = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+    var startPath = usePathname.replace("/" + locale, "").split("/")[1];
+    namespace = startPath.length === 0 ? "index" : startPath;
   }
 
   // Only automatically run translations in dev mode
-  if (isDev) {
-    var checkTranslations = function checkTranslations() {
-      if (isDev && debug) {
-        console.log("[AutoTranslate] Namespace: ", namespace);
-      }
-      fetch("/api/translate/check", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          namespace: namespace,
-          tKey: tKey,
-          message: children,
-          locales: locales,
-          defaultLocale: defaultLocale,
-          debug: debug
-        })
-      }).then(function (response) {
-        return response.json();
-      }).then(function (data) {
-        if (data.run_translate) {
-          addToQueue({
-            namespace: namespace,
-            tKey: tKey,
-            message: children
-          });
-        } else {
-          if (isDev && debug) {
-            console.log("[AutoTranslate] ".concat(namespace, ".").concat(tKey, " Translations already exist! \uD83D\uDE0E"));
-          }
-        }
-        setInitialized(true);
-      })["catch"](function (err) {
-        console.error(err);
+  useEffect(function () {
+    if (isDev && !disabled && initialized) {
+      addToCheckQueue({
+        tKey: tKey,
+        message: message,
+        namespace: namespace
       });
-    };
-    useEffect(function () {
-      if (initialized) {
-        checkTranslations();
-      }
-    }, [children, messages, locales]);
-    useEffect(function () {
-      if (!initialized) {
-        checkTranslations();
-      }
-    }, []);
-  }
+    }
+  }, [children, locales]);
+  useEffect(function () {
+    if (isDev && !disabled && !initialized) {
+      addToCheckQueue({
+        tKey: tKey,
+        message: message,
+        namespace: namespace
+      });
+      setInitialized(true);
+    }
+  }, []);
   if (!messages[namespace]) {
     return children;
   }
   return /*#__PURE__*/React.createElement(React.Fragment, null, messages[namespace][tKey] || children);
 };
 
-export { AutoTranslate, AutoTranslateContext, AutoTranslateProvider };
+export { AutoTranslate, AutoTranslateContext, AutoTranslateProvider, useAutoTranslate };

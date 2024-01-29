@@ -20,7 +20,7 @@ export const TranslateRoute = async (req, res) => {
     }
 
     try {
-        if (req.query.action == "check") {
+        if (req.query.action == "checkTranslation") {
             const runTranslate = await needsTranslations(namespace, tKey, message, locales, defaultLocale, debug)
 
 
