@@ -2,6 +2,84 @@ import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
 
+function _arrayLikeToArray(r, a) {
+  (null == a || a > r.length) && (a = r.length);
+  for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
+  return n;
+}
+function asyncGeneratorStep(n, t, e, r, o, a, c) {
+  try {
+    var i = n[a](c),
+      u = i.value;
+  } catch (n) {
+    return void e(n);
+  }
+  i.done ? t(u) : Promise.resolve(u).then(r, o);
+}
+function _asyncToGenerator(n) {
+  return function () {
+    var t = this,
+      e = arguments;
+    return new Promise(function (r, o) {
+      var a = n.apply(t, e);
+      function _next(n) {
+        asyncGeneratorStep(a, r, o, _next, _throw, "next", n);
+      }
+      function _throw(n) {
+        asyncGeneratorStep(a, r, o, _next, _throw, "throw", n);
+      }
+      _next(void 0);
+    });
+  };
+}
+function _createForOfIteratorHelper(r, e) {
+  var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
+  if (!t) {
+    if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) {
+      t && (r = t);
+      var n = 0,
+        F = function () {};
+      return {
+        s: F,
+        n: function () {
+          return n >= r.length ? {
+            done: !0
+          } : {
+            done: !1,
+            value: r[n++]
+          };
+        },
+        e: function (r) {
+          throw r;
+        },
+        f: F
+      };
+    }
+    throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+  var o,
+    a = !0,
+    u = !1;
+  return {
+    s: function () {
+      t = t.call(r);
+    },
+    n: function () {
+      var r = t.next();
+      return a = r.done, r;
+    },
+    e: function (r) {
+      u = !0, o = r;
+    },
+    f: function () {
+      try {
+        a || null == t.return || t.return();
+      } finally {
+        if (u) throw o;
+      }
+    }
+  };
+}
 function _regeneratorRuntime() {
   _regeneratorRuntime = function () {
     return e;
@@ -110,7 +188,7 @@ function _regeneratorRuntime() {
   function makeInvokeMethod(e, r, n) {
     var o = h;
     return function (i, a) {
-      if (o === f) throw new Error("Generator is already running");
+      if (o === f) throw Error("Generator is already running");
       if (o === s) {
         if ("throw" === i) throw a;
         return {
@@ -252,7 +330,7 @@ function _regeneratorRuntime() {
           } else if (c) {
             if (this.prev < i.catchLoc) return handle(i.catchLoc, !0);
           } else {
-            if (!u) throw new Error("try statement without catch or finally");
+            if (!u) throw Error("try statement without catch or finally");
             if (this.prev < i.finallyLoc) return handle(i.finallyLoc);
           }
         }
@@ -292,7 +370,7 @@ function _regeneratorRuntime() {
           return o;
         }
       }
-      throw new Error("illegal catch attempt");
+      throw Error("illegal catch attempt");
     },
     delegateYield: function (e, r, n) {
       return this.delegate = {
@@ -303,105 +381,18 @@ function _regeneratorRuntime() {
     }
   }, e;
 }
-function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
-  try {
-    var info = gen[key](arg);
-    var value = info.value;
-  } catch (error) {
-    reject(error);
-    return;
+function _unsupportedIterableToArray(r, a) {
+  if (r) {
+    if ("string" == typeof r) return _arrayLikeToArray(r, a);
+    var t = {}.toString.call(r).slice(8, -1);
+    return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0;
   }
-  if (info.done) {
-    resolve(value);
-  } else {
-    Promise.resolve(value).then(_next, _throw);
-  }
-}
-function _asyncToGenerator(fn) {
-  return function () {
-    var self = this,
-      args = arguments;
-    return new Promise(function (resolve, reject) {
-      var gen = fn.apply(self, args);
-      function _next(value) {
-        asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
-      }
-      function _throw(err) {
-        asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
-      }
-      _next(undefined);
-    });
-  };
-}
-function _unsupportedIterableToArray(o, minLen) {
-  if (!o) return;
-  if (typeof o === "string") return _arrayLikeToArray(o, minLen);
-  var n = Object.prototype.toString.call(o).slice(8, -1);
-  if (n === "Object" && o.constructor) n = o.constructor.name;
-  if (n === "Map" || n === "Set") return Array.from(o);
-  if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
-}
-function _arrayLikeToArray(arr, len) {
-  if (len == null || len > arr.length) len = arr.length;
-  for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
-  return arr2;
-}
-function _createForOfIteratorHelper(o, allowArrayLike) {
-  var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"];
-  if (!it) {
-    if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") {
-      if (it) o = it;
-      var i = 0;
-      var F = function () {};
-      return {
-        s: F,
-        n: function () {
-          if (i >= o.length) return {
-            done: true
-          };
-          return {
-            done: false,
-            value: o[i++]
-          };
-        },
-        e: function (e) {
-          throw e;
-        },
-        f: F
-      };
-    }
-    throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-  }
-  var normalCompletion = true,
-    didErr = false,
-    err;
-  return {
-    s: function () {
-      it = it.call(o);
-    },
-    n: function () {
-      var step = it.next();
-      normalCompletion = step.done;
-      return step;
-    },
-    e: function (e) {
-      didErr = true;
-      err = e;
-    },
-    f: function () {
-      try {
-        if (!normalCompletion && it.return != null) it.return();
-      } finally {
-        if (didErr) throw err;
-      }
-    }
-  };
 }
 
 var messagesPath = "/messages";
 var isDev = process.env.NODE_ENV === 'development';
 var TranslateRoute = /*#__PURE__*/function () {
-  var _ref = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(req, res) {
+  var _ref = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(req, res) {
     var _req$body, namespace, tKey, message, locales, defaultLocale, _req$body$gptModel, gptModel, _req$body$debug, debug, runTranslate;
     return _regeneratorRuntime().wrap(function _callee$(_context) {
       while (1) switch (_context.prev = _context.next) {
@@ -507,7 +498,7 @@ function needsTranslations(_x3, _x4, _x5, _x6, _x7, _x8) {
   return _needsTranslations.apply(this, arguments);
 }
 function _needsTranslations() {
-  _needsTranslations = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2(namespace, tKey, message, locales, defaultLocale, debug) {
+  _needsTranslations = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee2(namespace, tKey, message, locales, defaultLocale, debug) {
     var defaultLocaleTranslations, defaultMessage, _iterator2, _step2, locale, translations;
     return _regeneratorRuntime().wrap(function _callee2$(_context2) {
       while (1) switch (_context2.prev = _context2.next) {
@@ -595,7 +586,7 @@ function runAllTranslations(_x9, _x10, _x11) {
   return _runAllTranslations.apply(this, arguments);
 }
 function _runAllTranslations() {
-  _runAllTranslations = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee3(locales, defaultLocale, gptModel) {
+  _runAllTranslations = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee3(locales, defaultLocale, gptModel) {
     var defaultTranslations, namespace, tKey, message;
     return _regeneratorRuntime().wrap(function _callee3$(_context3) {
       while (1) switch (_context3.prev = _context3.next) {
@@ -639,7 +630,7 @@ function runTranslations(_x12, _x13, _x14, _x15, _x16, _x17, _x18) {
   return _runTranslations.apply(this, arguments);
 }
 function _runTranslations() {
-  _runTranslations = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(namespace, tKey, message, locales, defaultLocale, gptModel, debug) {
+  _runTranslations = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee4(namespace, tKey, message, locales, defaultLocale, gptModel, debug) {
     var defaultTranslations, messageChanged, _iterator3, _step3, locale, translations, _iterator4, _step4, _locale, _translations, translation, newTranslations;
     return _regeneratorRuntime().wrap(function _callee4$(_context4) {
       while (1) switch (_context4.prev = _context4.next) {
@@ -769,7 +760,7 @@ function loadTranslations(_x19) {
   return _loadTranslations.apply(this, arguments);
 }
 function _loadTranslations() {
-  _loadTranslations = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee5(locale) {
+  _loadTranslations = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee5(locale) {
     var jsonPath;
     return _regeneratorRuntime().wrap(function _callee5$(_context5) {
       while (1) switch (_context5.prev = _context5.next) {
@@ -804,7 +795,7 @@ function saveTranslations(_x20, _x21) {
   return _saveTranslations.apply(this, arguments);
 }
 function _saveTranslations() {
-  _saveTranslations = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee6(locale, translations) {
+  _saveTranslations = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee6(locale, translations) {
     var jsonPath;
     return _regeneratorRuntime().wrap(function _callee6$(_context6) {
       while (1) switch (_context6.prev = _context6.next) {
@@ -823,7 +814,7 @@ function translateMessage(_x22, _x23, _x24, _x25) {
   return _translateMessage.apply(this, arguments);
 }
 function _translateMessage() {
-  _translateMessage = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee7(message, fromLocale, toLocale, model) {
+  _translateMessage = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee7(message, fromLocale, toLocale, model) {
     var response;
     return _regeneratorRuntime().wrap(function _callee7$(_context7) {
       while (1) switch (_context7.prev = _context7.next) {
@@ -845,7 +836,7 @@ function gptTranslate(_x26, _x27, _x28, _x29) {
   return _gptTranslate.apply(this, arguments);
 }
 function _gptTranslate() {
-  _gptTranslate = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee8(message, model, fromLocale, toLocale) {
+  _gptTranslate = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee8(message, model, fromLocale, toLocale) {
     var systemMessage, userMessage, messages, response, translatedText;
     return _regeneratorRuntime().wrap(function _callee8$(_context8) {
       while (1) switch (_context8.prev = _context8.next) {
